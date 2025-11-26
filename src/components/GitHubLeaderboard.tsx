@@ -1,5 +1,6 @@
 import type { Article } from '../types';
 import { icons } from '../types';
+import GitHubIcon from './icons/GitHubIcon';
 
 interface GitHubLeaderboardProps {
   repos: Article[];
@@ -15,7 +16,7 @@ export default function GitHubLeaderboard({ repos }: GitHubLeaderboardProps) {
         {/* Header */}
         <div className="px-6 py-4 bg-gradient-to-r from-[#1f2233] to-[#1a1d29] border-b border-gray-700">
           <div className="flex items-center gap-3">
-            <span className="text-2xl">{icons.githubLeaderboard}</span>
+            <GitHubIcon className="w-7 h-7 text-blue-400" />
             <h2 className="text-2xl font-extrabold text-white">트렌딩 리포지토리</h2>
           </div>
         </div>

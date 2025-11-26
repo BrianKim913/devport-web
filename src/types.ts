@@ -1,4 +1,4 @@
-export type Category = 'AI_LLM' | 'DEVOPS_SRE' | 'BACKEND' | 'INFRA_CLOUD' | 'OTHER';
+export type Category = 'AI_LLM' | 'DEVOPS_SRE' | 'INFRA_CLOUD' | 'DATABASE' | 'BLOCKCHAIN' | 'SECURITY' | 'DATA_SCIENCE' | 'ARCHITECTURE' | 'MOBILE' | 'FRONTEND' | 'BACKEND' | 'OTHER';
 
 export type ItemType = 'REPO' | 'BLOG' | 'DISCUSSION';
 
@@ -28,9 +28,16 @@ export interface Article {
 export const categoryConfig: Record<Category, { label: string; color: string }> = {
   AI_LLM: { label: 'AI/LLM', color: 'bg-purple-600' },
   DEVOPS_SRE: { label: 'DevOps/SRE', color: 'bg-cyan-600' },
-  BACKEND: { label: 'Backend', color: 'bg-green-600' },
   INFRA_CLOUD: { label: 'Infra/Cloud', color: 'bg-amber-600' },
-  OTHER: { label: 'Other', color: 'bg-gray-600' },
+  DATABASE: { label: 'Database', color: 'bg-emerald-600' },
+  BLOCKCHAIN: { label: 'Blockchain', color: 'bg-yellow-600' },
+  SECURITY: { label: 'Security', color: 'bg-red-600' },
+  DATA_SCIENCE: { label: 'Data Science', color: 'bg-blue-600' },
+  ARCHITECTURE: { label: 'Architecture', color: 'bg-indigo-600' },
+  MOBILE: { label: 'Mobile', color: 'bg-pink-600' },
+  FRONTEND: { label: 'Frontend', color: 'bg-teal-600' },
+  BACKEND: { label: 'Backend', color: 'bg-green-600' },
+  OTHER: { label: '기타', color: 'bg-gray-600' },
 };
 
 export const sourceConfig: Record<Source, { label: string; icon: string }> = {

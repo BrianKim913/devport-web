@@ -1,15 +1,33 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { BenchmarkType } from '../types';
-import { benchmarkConfig, icons } from '../types';
-import { llmBenchmarkData } from '../llmMockData';
+import { benchmarkConfig } from '../types';
+import { getLLMRankings, type LLMModelResponse, type BenchmarkResponse } from '../services/api';
+import AIIcon from './icons/AIIcon';
 
 export default function LLMLeaderboard() {
   const [selectedBenchmark, setSelectedBenchmark] = useState<BenchmarkType>('AGENTIC_CODING');
-
-  const models = llmBenchmarkData[selectedBenchmark];
-  const currentBenchmark = benchmarkConfig[selectedBenchmark];
+  const [models, setModels] = useState<LLMModelResponse[]>([]);
+  const [currentBenchmark, setCurrentBenchmark] = useState<BenchmarkResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const benchmarks: BenchmarkType[] = ['AGENTIC_CODING', 'REASONING', 'MATH', 'VISUAL', 'MULTILINGUAL'];
+
+  useEffect(() => {
+    const fetchLLMRankings = async () => {
+      try {
+        setIsLoading(true);
+        const data = await getLLMRankings(selectedBenchmark, 8);
+        setModels(data.models);
+        setCurrentBenchmark(data.benchmark);
+      } catch (error) {
+        console.error('Failed to fetch LLM rankings:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchLLMRankings();
+  }, [selectedBenchmark]);
 
   return (
     <section className="mb-8">
@@ -17,7 +35,7 @@ export default function LLMLeaderboard() {
         {/* Header */}
         <div className="px-6 py-4 bg-gradient-to-r from-[#1f2233] to-[#1a1d29] border-b border-gray-700">
           <div className="flex items-center gap-3 mb-4">
-            <span className="text-2xl">{icons.llmLeaderboard}</span>
+            <AIIcon className="w-7 h-7 text-blue-400" />
             <h2 className="text-2xl font-extrabold text-white">LLM 리더보드</h2>
           </div>
 
@@ -35,7 +53,6 @@ export default function LLMLeaderboard() {
                       : 'bg-gray-700/50 text-gray-300 hover:bg-gray-700'
                   }`}
                 >
-                  <span className="mr-1">{config.icon}</span>
                   {config.labelKo}
                 </button>
               );
@@ -43,51 +60,62 @@ export default function LLMLeaderboard() {
           </div>
 
           {/* Current Benchmark Description */}
-          <div className="mt-3 text-sm text-gray-400">
-            <p className="font-medium">{currentBenchmark.descriptionKo}</p>
-          </div>
+          {currentBenchmark && (
+            <div className="mt-3 text-sm text-gray-400">
+              <p className="font-medium">{currentBenchmark.descriptionKo}</p>
+            </div>
+          )}
         </div>
 
         {/* Leaderboard List - Scrollable, shows 5 rows */}
         <div className="divide-y divide-gray-700 max-h-[400px] overflow-y-auto dark-scrollbar">
-          {models.map((model, index) => (
-            <div
-              key={model.id}
-              className="flex items-center gap-4 px-6 py-4 hover:bg-[#20233a] transition-colors group"
-            >
-              {/* Rank */}
-              <div className="flex-shrink-0 w-8 flex items-center justify-center font-bold text-lg text-gray-400">
-                {index + 1}
-              </div>
-
-              {/* Model Info */}
-              <div className="flex-1 min-w-0">
-                <h3 className="text-base font-semibold text-white group-hover:text-indigo-400 transition-colors">
-                  {model.name}
-                </h3>
-                <p className="text-sm text-gray-400 mt-0.5">
-                  {model.provider}
-                </p>
-              </div>
-
-              {/* Score */}
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <div className="text-xl font-bold text-indigo-400">
-                  {model.score}%
-                </div>
-              </div>
-
-              {/* Progress Bar Visual */}
-              <div className="hidden xl:block flex-shrink-0 w-20">
-                <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all"
-                    style={{ width: `${model.score}%` }}
-                  />
-                </div>
+          {isLoading ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="flex items-center gap-3 text-indigo-400">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-400"></div>
+                <span className="text-lg font-medium">로딩 중...</span>
               </div>
             </div>
-          ))}
+          ) : (
+            models.map((model, index) => (
+              <div
+                key={model.id}
+                className="flex items-center gap-4 px-6 py-4 hover:bg-[#20233a] transition-colors group"
+              >
+                {/* Rank */}
+                <div className="flex-shrink-0 w-8 flex items-center justify-center font-bold text-lg text-gray-400">
+                  {model.rank || index + 1}
+                </div>
+
+                {/* Model Info */}
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-base font-semibold text-white group-hover:text-indigo-400 transition-colors">
+                    {model.name}
+                  </h3>
+                  <p className="text-sm text-gray-400 mt-0.5">
+                    {model.provider}
+                  </p>
+                </div>
+
+                {/* Score */}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="text-xl font-bold text-indigo-400">
+                    {model.score}%
+                  </div>
+                </div>
+
+                {/* Progress Bar Visual */}
+                <div className="hidden xl:block flex-shrink-0 w-20">
+                  <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all"
+                      style={{ width: `${model.score}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
         </div>
 
         {/* Footer Note */}

@@ -29,8 +29,10 @@ export default function ArticleCard({ article, variant = 'default' }: ArticleCar
         rel="noopener noreferrer"
         className="block bg-[#1a1d29] rounded-lg p-6 border border-gray-700 hover:border-blue-500/50 transition-all cursor-pointer"
       >
-        <div className="flex items-center gap-3 mb-3">
-          <span className={`px-3 py-1 rounded-full text-white text-sm font-semibold ${categoryInfo.color}`}>
+        <div className="flex items-center gap-3 mb-3" onClickCapture={(e) => e.stopPropagation()}>
+          <span
+            className={`px-3 py-1 rounded-full text-white text-sm font-semibold ${categoryInfo.color}`}
+          >
             {categoryInfo.label}
           </span>
           <span className="px-3 py-1 rounded-full bg-gray-700/50 text-gray-300 text-xs flex items-center gap-1">
@@ -67,7 +69,7 @@ export default function ArticleCard({ article, variant = 'default' }: ArticleCar
       className="block bg-[#1a1d29] rounded-xl overflow-hidden transition-all border border-gray-700 hover:border-blue-500/50 cursor-pointer group"
     >
       <div className="p-7">
-        <div className="flex items-center gap-3 mb-4">
+        <div className="flex items-center gap-3 mb-4" onClickCapture={(e) => e.stopPropagation()}>
           <span className={`px-4 py-1.5 rounded-full text-white text-sm font-semibold ${categoryInfo.color}`}>
             {categoryInfo.label}
           </span>
@@ -91,7 +93,7 @@ export default function ArticleCard({ article, variant = 'default' }: ArticleCar
           </p>
         )}
 
-        <div className="flex flex-wrap gap-2 mb-4">
+        <div className="flex flex-wrap gap-2 mb-4" onClickCapture={(e) => e.stopPropagation()}>
           {article.tags.map((tag) => (
             <span
               key={tag}
