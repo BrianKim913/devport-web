@@ -211,7 +211,8 @@ export const getCurrentUser = async (): Promise<UserResponse> => {
 };
 
 export const initiateOAuthLogin = (provider: 'github' | 'google'): void => {
-  window.location.href = `${API_BASE_URL}/oauth2/authorize/${provider}`;
+  // Spring Security OAuth2 default endpoint is /oauth2/authorization/{registrationId}
+  window.location.href = `${API_BASE_URL}/oauth2/authorization/${provider}`;
 };
 
 export const logout = async (): Promise<void> => {
