@@ -4,6 +4,25 @@ export type ItemType = 'REPO' | 'BLOG' | 'DISCUSSION';
 
 export type Source = 'github' | 'hackernews' | 'reddit' | 'medium' | 'devto' | 'hashnode';
 
+// GitRepo Entity (separate from Article)
+export interface GitRepo {
+  id: number;
+  fullName: string;
+  url: string;
+  description?: string;
+  language: string;
+  stars: number;
+  forks: number;
+  starsThisWeek: number;
+  summaryKoTitle: string;
+  summaryKoBody?: string;
+  category: Category;
+  score: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Article Entity (for blogs, discussions)
 export interface Article {
   id: string;
   itemType: ItemType;

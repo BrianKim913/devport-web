@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { Article, BenchmarkType } from '../types';
+import type { Article, GitRepo, BenchmarkType } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
@@ -117,6 +117,14 @@ export interface ArticlePageResponse {
   hasMore: boolean;
 }
 
+export interface GitRepoPageResponse {
+  content: GitRepo[];
+  totalElements: number;
+  totalPages: number;
+  currentPage: number;
+  hasMore: boolean;
+}
+
 export interface TrendingTickerResponse {
   id: string;
   summaryKoTitle: string;
@@ -174,6 +182,51 @@ export const getArticles = async (
   return response.data;
 };
 
+// GitRepo APIs
+export const getGitRepos = async (
+  category?: string,
+  page: number = 0,
+  size: number = 10
+): Promise<GitRepoPageResponse> => {
+  const params: Record<string, string | number> = { page, size };
+  if (category && category !== 'ALL') {
+    params.category = category;
+  }
+
+  const response = await apiClient.get<GitRepoPageResponse>('/api/git-repos', { params });
+  return response.data;
+};
+
+export const getTrendingGitRepos = async (limit: number = 10): Promise<GitRepo[]> => {
+  const response = await apiClient.get<GitRepo[]>('/api/git-repos/trending', {
+    params: { limit },
+  });
+  return response.data;
+};
+
+export const getTrendingGitReposPaginated = async (
+  page: number = 0,
+  size: number = 10
+): Promise<GitRepoPageResponse> => {
+  const response = await apiClient.get<GitRepoPageResponse>('/api/git-repos/trending', {
+    params: { page, size },
+  });
+  return response.data;
+};
+
+export const getGitReposByLanguage = async (language: string, limit: number = 10): Promise<GitRepo[]> => {
+  const response = await apiClient.get<GitRepo[]>(`/api/git-repos/language/${language}`, {
+    params: { limit },
+  });
+  return response.data;
+};
+
+export const getTopWeeklyGitRepos = async (): Promise<GitRepo[]> => {
+  const response = await apiClient.get<GitRepo[]>('/api/git-repos/top-weekly');
+  return response.data;
+};
+
+// Legacy Article APIs (kept for backward compatibility if needed)
 export const getGitHubTrending = async (limit: number = 10): Promise<Article[]> => {
   const response = await apiClient.get<Article[]>('/api/articles/github-trending', {
     params: { limit },
