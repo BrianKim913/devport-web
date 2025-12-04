@@ -47,7 +47,7 @@ export default function ArticleCard({ article, variant = 'default' }: ArticleCar
           {article.metadata?.readTime && (
             <span className="px-3 py-1 rounded-full bg-gray-700/50 text-gray-300 text-xs flex items-center gap-1.5">
               <BookIcon className="w-3 h-3" />
-              <span>{article.metadata.readTime}</span>
+              <span>{article.metadata.readTime.replace(' read', '')}</span>
             </span>
           )}
         </div>
@@ -84,7 +84,7 @@ export default function ArticleCard({ article, variant = 'default' }: ArticleCar
           {article.metadata?.readTime && (
             <span className="px-4 py-1.5 rounded-full bg-gray-700/50 text-gray-300 text-sm flex items-center gap-2">
               <BookIcon className="w-4 h-4" />
-              <span>{article.metadata.readTime}</span>
+              <span>{article.metadata.readTime.replace(' read', '')}</span>
             </span>
           )}
         </div>
