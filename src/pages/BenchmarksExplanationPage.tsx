@@ -6,6 +6,7 @@ import { benchmarkCategoryConfig } from '../types';
 import { getAllLLMBenchmarks, type LLMBenchmarkResponse } from '../services/api';
 
 export default function BenchmarksExplanationPage() {
+  const [selectedGroup, setSelectedGroup] = useState<BenchmarkCategoryGroup>('Composite');
   const [benchmarks, setBenchmarks] = useState<LLMBenchmarkResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -35,9 +36,8 @@ export default function BenchmarksExplanationPage() {
     return acc;
   }, {} as Record<BenchmarkCategoryGroup, LLMBenchmarkResponse[]>);
 
-  // Sort groups by predefined order
-  const groupOrder: BenchmarkCategoryGroup[] = ['Composite', 'Agentic', 'Reasoning', 'Coding', 'Math', 'Specialized'];
-  const sortedGroups = groupOrder.filter(group => groupedBenchmarks[group]?.length > 0);
+  // Get benchmarks for selected group
+  const displayBenchmarks = groupedBenchmarks[selectedGroup] || [];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0f1117] via-[#141824] to-[#0f1117]">
@@ -71,52 +71,83 @@ export default function BenchmarksExplanationPage() {
             </div>
           </div>
         ) : (
-          /* Benchmark Groups */
-          <div className="space-y-10">
-            {sortedGroups.map((group) => {
-              const config = benchmarkCategoryConfig[group];
-              const groupBenchmarks = groupedBenchmarks[group] || [];
+          <div className="space-y-8">
+            {/* Category Group Tabs */}
+            <div className="bg-[#1a1d29] rounded-2xl border border-gray-700 p-6">
+              <h2 className="text-xl font-bold text-white mb-4">카테고리 선택</h2>
+              <div className="flex flex-wrap gap-3">
+                {(Object.keys(benchmarkCategoryConfig) as BenchmarkCategoryGroup[]).map((group) => {
+                  const config = benchmarkCategoryConfig[group];
+                  const benchmarkCount = groupedBenchmarks[group]?.length || 0;
 
-              return (
-                <div key={group} className="bg-[#1a1d29] rounded-2xl border border-gray-700 overflow-hidden">
-                  {/* Group Header */}
-                  <div className={`px-6 py-4 bg-gradient-to-r from-[#1f2233] to-[#1a1d29] border-b border-gray-700`}>
-                    <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-                      <span className={`px-3 py-1 rounded-lg text-sm font-semibold text-white ${config.color}`}>
-                        {config.labelKo}
-                      </span>
-                      <span>{config.label}</span>
-                    </h2>
+                  return (
+                    <button
+                      key={group}
+                      onClick={() => setSelectedGroup(group)}
+                      className={`px-5 py-3 rounded-xl font-semibold transition-all text-sm flex items-center gap-2 ${
+                        selectedGroup === group
+                          ? `${config.color} text-white shadow-lg transform scale-105`
+                          : 'bg-gray-700/50 text-gray-300 hover:bg-gray-700'
+                      }`}
+                    >
+                      <span className="text-lg">{config.icon}</span>
+                      <span>{config.labelKo}</span>
+                      <span className="text-xs opacity-75">({benchmarkCount})</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Benchmark Details for Selected Group */}
+            <div className="bg-[#1a1d29] rounded-2xl border border-gray-700 overflow-hidden">
+              {/* Group Header */}
+              <div className={`px-6 py-5 bg-gradient-to-r from-[#1f2233] to-[#1a1d29] border-b border-gray-700`}>
+                <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                  {benchmarkCategoryConfig[selectedGroup].labelKo}
+                  <span className="text-gray-400 text-lg">
+                    ({benchmarkCategoryConfig[selectedGroup].label})
+                  </span>
+                </h2>
+              </div>
+
+              {/* Benchmarks List */}
+              <div className="divide-y divide-gray-700">
+                {displayBenchmarks.length === 0 ? (
+                  <div className="px-6 py-12 text-center text-gray-400">
+                    이 카테고리에는 벤치마크가 없습니다.
                   </div>
-
-                  {/* Benchmarks in Group */}
-                  <div className="divide-y divide-gray-700">
-                    {groupBenchmarks.map((benchmark) => (
-                      <div key={benchmark.benchmarkType} className="px-6 py-5 hover:bg-[#20233a] transition-colors">
-                        <h3 className="text-xl font-semibold text-white mb-2">
+                ) : (
+                  displayBenchmarks.map((benchmark) => (
+                    <div key={benchmark.benchmarkType} className="px-6 py-6 hover:bg-[#20233a] transition-colors">
+                      {/* Benchmark Name */}
+                      <div className="flex items-start gap-3 mb-3">
+                        <div className={`px-3 py-1 rounded-lg text-xs font-bold text-white ${benchmarkCategoryConfig[selectedGroup].color}`}>
+                          {benchmark.benchmarkType}
+                        </div>
+                        <h3 className="text-xl font-bold text-white flex-1">
                           {benchmark.displayName}
                         </h3>
-
-                        {/* Short Description */}
-                        <p className="text-sm text-gray-400 mb-3 leading-relaxed">
-                          {benchmark.description}
-                        </p>
-
-                        {/* Detailed Explanation (if available) */}
-                        {benchmark.explanation && (
-                          <div className="mt-3 p-4 bg-gray-800/50 rounded-lg border border-gray-700">
-                            <h4 className="text-sm font-semibold text-indigo-400 mb-2">상세 설명</h4>
-                            <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-line">
-                              {benchmark.explanation}
-                            </p>
-                          </div>
-                        )}
                       </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
+
+                      {/* Short Description */}
+                      <p className="text-base text-gray-300 mb-4 leading-relaxed pl-3 border-l-2 border-indigo-500">
+                        {benchmark.description}
+                      </p>
+
+                      {/* Detailed Explanation (if available) */}
+                      {benchmark.explanation && (
+                        <div className="mt-4 p-5 bg-gray-800/50 rounded-xl border border-gray-700">
+                          <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-line">
+                            {benchmark.explanation}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
           </div>
         )}
 

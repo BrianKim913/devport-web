@@ -92,92 +92,8 @@ export type BenchmarkType =
   | 'AA_CODING_INDEX'
   | 'AA_MATH_INDEX';
 
-export type BenchmarkCategoryGroup = 'Intelligence' | 'Agentic' | 'Reasoning' | 'Coding' | 'Math' | 'Specialized';
+export type BenchmarkCategoryGroup = 'Composite' | 'Agentic' | 'Reasoning' | 'Coding' | 'Math' | 'Specialized';
 
-// Benchmark metadata (fetched from backend)
-export interface LLMBenchmark {
-  benchmarkType: BenchmarkType;
-  displayName: string;
-  categoryGroup: BenchmarkCategoryGroup;
-  description: string;
-  explanation?: string;
-  sortOrder?: number;
-}
-
-// LLM Model summary (for leaderboard lists)
-export interface LLMModelSummary {
-  id: number;
-  modelId: string;
-  slug: string;
-  modelName: string;
-  provider: string;
-  modelCreatorName?: string;
-  license?: string;
-  priceBlended?: number;
-  contextWindow?: number;
-  scoreAaIntelligenceIndex?: number;
-}
-
-// LLM Model detail (includes all benchmark scores)
-export interface LLMModelDetail {
-  id: number;
-  externalId?: string;
-  slug: string;
-  modelId: string;
-  modelName: string;
-  releaseDate?: string;
-  provider: string;
-  modelCreatorId?: number;
-  modelCreatorName?: string;
-  description?: string;
-
-  // Pricing
-  priceInput?: number;
-  priceOutput?: number;
-  priceBlended?: number;
-
-  // Performance
-  contextWindow?: number;
-  outputSpeedMedian?: number;
-  latencyTtft?: number;
-  medianTimeToFirstAnswerToken?: number;
-  license?: string;
-
-  // 15 Available Benchmark scores (0-100 scale)
-  // Agentic (2)
-  scoreTerminalBenchHard?: number;
-  scoreTauBenchTelecom?: number;
-  // Reasoning (4)
-  scoreAaLcr?: number;
-  scoreHumanitysLastExam?: number;
-  scoreMmluPro?: number;
-  scoreGpqaDiamond?: number;
-  // Coding (3)
-  scoreLivecodeBench?: number;
-  scoreScicode?: number;
-  scoreIfbench?: number;
-  // Math (3)
-  scoreMath500?: number;
-  scoreAime?: number;
-  scoreAime2025?: number;
-  // Composite (3)
-  scoreAaIntelligenceIndex?: number;
-  scoreAaCodingIndex?: number;
-  scoreAaMathIndex?: number;
-}
-
-// Leaderboard entry (model with rank and score for specific benchmark)
-export interface LLMLeaderboardEntry {
-  rank: number;
-  modelId: string;
-  modelName: string;
-  provider: string;
-  modelCreatorName?: string;
-  score: number;
-  license?: string;
-  priceBlended?: number;
-  contextWindow?: number;
-}
 
 // Category group configuration
 export const benchmarkCategoryConfig: Record<BenchmarkCategoryGroup, {
@@ -186,8 +102,8 @@ export const benchmarkCategoryConfig: Record<BenchmarkCategoryGroup, {
   color: string;
   icon: string;
 }> = {
-  Intelligence: {
-    label: 'Intelligence',
+  Composite: {
+    label: 'Composite',
     labelKo: '종합 지능',
     color: 'bg-violet-600',
     icon: '📊'
@@ -223,19 +139,3 @@ export const benchmarkCategoryConfig: Record<BenchmarkCategoryGroup, {
     icon: '🎯'
   }
 };
-
-// Centralized icon configuration for easy replacement with custom icons
-export const icons = {
-  // Section icons
-  githubLeaderboard: '🏆',
-  llmLeaderboard: '🤖',
-  trendingBlog: '📚',
-
-  // Metadata icons
-  time: '🕐',
-  star: '⭐',
-  comment: '💬',
-  upvote: '⬆️',
-  readTime: '📖',
-  language: '🌐',
-} as const;

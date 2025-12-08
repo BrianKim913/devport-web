@@ -8,7 +8,6 @@ import ArticleCard from '../components/ArticleCard';
 import ArticleIcon from '../components/icons/ArticleIcon';
 import { getArticles, getTrendingGitReposPaginated, getTrendingTicker } from '../services/api';
 import type { Article, GitRepo, Category } from '../types';
-import { icons } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function HomePage() {

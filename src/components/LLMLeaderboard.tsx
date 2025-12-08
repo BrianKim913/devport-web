@@ -12,7 +12,7 @@ import AIIcon from './icons/AIIcon';
 
 export default function LLMLeaderboard() {
   const [selectedBenchmark, setSelectedBenchmark] = useState<BenchmarkType>('AA_INTELLIGENCE_INDEX');
-  const [selectedGroup, setSelectedGroup] = useState<BenchmarkCategoryGroup>('Intelligence'); // Default to Intelligence
+  const [selectedGroup, setSelectedGroup] = useState<BenchmarkCategoryGroup>('Composite'); // Default to Composite
   const [leaderboardEntries, setLeaderboardEntries] = useState<LLMLeaderboardEntryResponse[]>([]);
   const [allBenchmarks, setAllBenchmarks] = useState<LLMBenchmarkResponse[]>([]);
   const [currentBenchmarkInfo, setCurrentBenchmarkInfo] = useState<LLMBenchmarkResponse | null>(null);
@@ -70,9 +70,9 @@ export default function LLMLeaderboard() {
     return acc;
   }, {} as Record<BenchmarkCategoryGroup, LLMBenchmarkResponse[]>);
 
-  // Single-benchmark categories: Intelligence, Math, Specialized
+  // Single-benchmark categories: Composite, Math, Specialized
   // Don't show sub-tabs for these, just show the score directly
-  const shouldShowBenchmarkTabs = !['Intelligence', 'Math', 'Specialized'].includes(selectedGroup);
+  const shouldShowBenchmarkTabs = !['Composite', 'Math', 'Specialized'].includes(selectedGroup);
 
   const displayBenchmarks = allBenchmarks.filter(benchmark => {
     const group = benchmark.categoryGroup as BenchmarkCategoryGroup;
@@ -121,7 +121,7 @@ export default function LLMLeaderboard() {
             })}
           </div>
 
-          {/* Benchmark Tabs (only show for non-Intelligence categories) */}
+          {/* Benchmark Tabs (only show for non-Composite categories) */}
           {shouldShowBenchmarkTabs && (
             <div className="flex flex-wrap gap-2 relative mb-3">
               {displayBenchmarks.map((benchmark) => {
