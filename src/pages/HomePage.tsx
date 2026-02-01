@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
+import Sidebar from '../components/Sidebar';
 import TrendingTicker from '../components/TrendingTicker';
 import GitHubLeaderboard from '../components/GitHubLeaderboard';
 import LLMLeaderboard from '../components/LLMLeaderboard';
 import ArticleCard from '../components/ArticleCard';
-import ArticleIcon from '../components/icons/ArticleIcon';
 import { getArticles, getTrendingGitReposPaginated, getTrendingTicker } from '../services/api';
 import type { Article, GitRepo, Category } from '../types';
 import { useAuth } from '../contexts/AuthContext';
@@ -23,100 +23,78 @@ export default function HomePage() {
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const observerTarget = useRef<HTMLDivElement>(null);
 
-  // GitHub repos pagination state
   const [reposPage, setReposPage] = useState(0);
   const [reposHasMore, setReposHasMore] = useState(true);
   const [reposLoading, setReposLoading] = useState(false);
 
-  // Article viewing limits for anonymous users
-  const [loadCount, setLoadCount] = useState(0); // Tracks how many times user loaded more articles
-  const MAX_ANONYMOUS_LOADS = 3; // Initial load (9) + 3 more loads (3 each) = 18 articles max
+  const [loadCount, setLoadCount] = useState(0);
+  const MAX_ANONYMOUS_LOADS = 3;
 
-  // Fetch initial data
-      useEffect(() => {
-        const fetchInitialData = async () => {
-          setIsLoading(true);
-          setReposLoading(true);
-          try {
-            // For anonymous users on non-ALL categories, show empty and require login
-            if (!isAuthenticated && selectedCategory !== 'ALL') {
-              setArticles([]);
-              setHasMore(true); // Set to true so login prompt shows
-              setCurrentPage(0);
-              setLoadCount(MAX_ANONYMOUS_LOADS); // Set to max to trigger login prompt
-              setIsInitialLoading(false);
-              setIsLoading(false);
-              setReposLoading(false);
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      setIsLoading(true);
+      setReposLoading(true);
+      try {
+        if (!isAuthenticated && selectedCategory !== 'ALL') {
+          setArticles([]);
+          setHasMore(true);
+          setCurrentPage(0);
+          setLoadCount(MAX_ANONYMOUS_LOADS);
+          setIsInitialLoading(false);
+          setIsLoading(false);
+          setReposLoading(false);
 
-              // Still fetch github and ticker for other sections
-              const [githubData, tickerData] = await Promise.all([
-                getTrendingGitReposPaginated(0, 10),
-                getTrendingTicker(),
-              ]);
-              setGithubRepos(githubData.content);
-              setReposHasMore(githubData.hasMore);
-              setReposPage(0);
-              setTickerArticles(tickerData);
-              return;
-            }
+          const [githubData, tickerData] = await Promise.all([
+            getTrendingGitReposPaginated(0, 10),
+            getTrendingTicker(),
+          ]);
+          setGithubRepos(githubData.content);
+          setReposHasMore(githubData.hasMore);
+          setReposPage(0);
+          setTickerArticles(tickerData);
+          return;
+        }
 
-            const [articlesData, githubData, tickerData] = await Promise.all([
-              getArticles(selectedCategory === 'ALL' ? undefined : selectedCategory, 0, 9),
-              getTrendingGitReposPaginated(0, 10),
-              getTrendingTicker(),
-            ]);
+        const [articlesData, githubData, tickerData] = await Promise.all([
+          getArticles(selectedCategory === 'ALL' ? undefined : selectedCategory, 0, 9),
+          getTrendingGitReposPaginated(0, 10),
+          getTrendingTicker(),
+        ]);
 
-            setArticles(articlesData.content);
-            setHasMore(articlesData.hasMore);
-            setCurrentPage(0);
-            setLoadCount(0); // Reset load count when category changes
-            setGithubRepos(githubData.content);
-            setReposHasMore(githubData.hasMore);
-            setReposPage(0);
-            setTickerArticles(tickerData);
-            setIsInitialLoading(false);
-          } catch (error) {
-            console.error('Failed to fetch initial data:', error);
-          } finally {
-            setIsLoading(false);
-            setReposLoading(false);
-          }
-        };
+        setArticles(articlesData.content);
+        setHasMore(articlesData.hasMore);
+        setCurrentPage(0);
+        setLoadCount(0);
+        setGithubRepos(githubData.content);
+        setReposHasMore(githubData.hasMore);
+        setReposPage(0);
+        setTickerArticles(tickerData);
+        setIsInitialLoading(false);
+      } catch (error) {
+        console.error('Failed to fetch initial data:', error);
+      } finally {
+        setIsLoading(false);
+        setReposLoading(false);
+      }
+    };
 
-        fetchInitialData();
-      }, [selectedCategory, isAuthenticated]);
+    fetchInitialData();
+  }, [selectedCategory, isAuthenticated]);
 
-  // Fetch more articles for infinite scroll
   const fetchMoreArticles = useCallback(async () => {
-    console.log('🎯 fetchMoreArticles called - isLoading:', isLoading, 'hasMore:', hasMore, 'loadCount:', loadCount);
-
-    if (isLoading || !hasMore) {
-      console.log('⏸️ Skipping fetch - isLoading:', isLoading, 'hasMore:', hasMore);
-      return;
-    }
-
-    // Check if anonymous user has reached the limit
-    if (!isAuthenticated && loadCount >= MAX_ANONYMOUS_LOADS) {
-      console.log('🔒 Anonymous user reached limit');
-      return; // Stop loading more articles
-    }
+    if (isLoading || !hasMore) return;
+    if (!isAuthenticated && loadCount >= MAX_ANONYMOUS_LOADS) return;
 
     try {
       setIsLoading(true);
       const nextPage = currentPage + 1;
-
-      // For anonymous users after initial load, only fetch 3 articles per scroll
       const pageSize = !isAuthenticated && loadCount > 0 ? 3 : 9;
-
-      console.log('📥 Fetching page', nextPage, 'with size', pageSize);
 
       const data = await getArticles(
         selectedCategory === 'ALL' ? undefined : selectedCategory,
         nextPage,
         pageSize
       );
-
-      console.log('✅ Loaded', data.content?.length, 'more articles');
 
       setArticles((prev) => [...prev, ...data.content]);
       setHasMore(data.hasMore);
@@ -129,7 +107,6 @@ export default function HomePage() {
     }
   }, [isLoading, hasMore, isAuthenticated, loadCount, currentPage, selectedCategory]);
 
-  // Fetch more GitHub repos for infinite scroll
   const fetchMoreGitRepos = async () => {
     if (reposLoading || !reposHasMore) return;
 
@@ -137,8 +114,6 @@ export default function HomePage() {
       setReposLoading(true);
       const nextPage = reposPage + 1;
       const data = await getTrendingGitReposPaginated(nextPage, 10);
-
-      console.log('🐙 Loading more trending repos - page', nextPage, ':', data.content?.length || 0, 'items');
 
       setGithubRepos((prev) => [...prev, ...data.content]);
       setReposHasMore(data.hasMore);
@@ -150,21 +125,12 @@ export default function HomePage() {
     }
   };
 
-  // Infinite scroll observer
   useEffect(() => {
-    // Wait for initial loading to complete before setting up observer
-    if (isInitialLoading) {
-      console.log('⏳ Waiting for initial load to complete...');
-      return;
-    }
-
-    console.log('👁️ Setting up observer - hasMore:', hasMore, 'isLoading:', isLoading);
+    if (isInitialLoading) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
-        console.log('🔍 Observer triggered - isIntersecting:', entries[0].isIntersecting, 'hasMore:', hasMore, 'isLoading:', isLoading);
         if (entries[0].isIntersecting && hasMore && !isLoading) {
-          console.log('✨ Calling fetchMoreArticles from observer');
           fetchMoreArticles();
         }
       },
@@ -173,10 +139,7 @@ export default function HomePage() {
 
     const currentTarget = observerTarget.current;
     if (currentTarget) {
-      console.log('📍 Observer target found, observing...');
       observer.observe(currentTarget);
-    } else {
-      console.log('⚠️ Observer target NOT found');
     }
 
     return () => {
@@ -189,225 +152,186 @@ export default function HomePage() {
   const categories = [
     { id: 'ALL' as const, label: '전체' },
     { id: 'AI_LLM' as const, label: 'AI/LLM' },
-    { id: 'DEVOPS_SRE' as const, label: 'DevOps/SRE' },
-    { id: 'INFRA_CLOUD' as const, label: 'Infra/Cloud' },
+    { id: 'DEVOPS_SRE' as const, label: 'DevOps' },
+    { id: 'INFRA_CLOUD' as const, label: 'Cloud' },
     { id: 'DATABASE' as const, label: 'Database' },
-    { id: 'BLOCKCHAIN' as const, label: 'Blockchain' },
     { id: 'SECURITY' as const, label: 'Security' },
-    { id: 'DATA_SCIENCE' as const, label: 'Data Science' },
-    { id: 'ARCHITECTURE' as const, label: 'Architecture' },
-    { id: 'MOBILE' as const, label: 'Mobile' },
     { id: 'FRONTEND' as const, label: 'Frontend' },
     { id: 'BACKEND' as const, label: 'Backend' },
+    { id: 'MOBILE' as const, label: 'Mobile' },
     { id: 'OTHER' as const, label: '기타' },
   ];
 
   if (isInitialLoading) {
     return (
-      <div className="min-h-screen bg-[#0f1117] flex items-center justify-center">
-        <div className="flex items-center gap-3 text-blue-400">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400"></div>
-          <span className="text-xl font-medium">로딩 중...</span>
-        </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-surface-border border-t-accent rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0f1117]">
+    <div className="min-h-screen bg-glow">
       <Navbar />
 
-      <main className="max-w-7xl mx-auto px-6 py-8">
-        {/* Trending News Ticker */}
-        <TrendingTicker articles={tickerArticles} />
+      <div className="min-h-[calc(100vh-4rem)]">
+        {/* Left Sidebar - Fixed */}
+        <div className="fixed left-0 top-16 w-52 h-[calc(100vh-4rem)] z-40 hidden lg:block">
+          <Sidebar />
+        </div>
 
-        {/* GitHub Trending Leaderboard */}
-        <GitHubLeaderboard
-          repos={githubRepos}
-          onLoadMore={fetchMoreGitRepos}
-          hasMore={reposHasMore}
-          isLoading={reposLoading}
-        />
+        {/* Trending Ticker - with left margin to avoid left sidebar */}
+        <div className="lg:ml-52 border-b border-surface-border/50">
+          <TrendingTicker articles={tickerArticles} />
+        </div>
 
-        {/* LLM Leaderboard */}
-        <LLMLeaderboard />
-
-        {/* Articles with Category Tabs */}
-        <section>
-          <div className="bg-[#1a1d29] rounded-2xl p-6 mb-6 border border-gray-700">
-            <h2 className="text-2xl font-extrabold text-white flex items-center gap-3 mb-4">
-              <ArticleIcon className="w-7 h-7 text-blue-400" />
-              트렌딩 블로그
-            </h2>
-
-            {/* Category Tabs */}
-            <div className="flex flex-wrap gap-2 mt-4">
-              {categories.map((category) => (
-                <button
-                  key={category.id}
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setSelectedCategory(category.id);
-                  }}
-                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                    selectedCategory === category.id
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-gray-700/50 text-gray-300 hover:bg-gray-700'
-                  }`}
-                >
-                  {category.label}
-                </button>
-              ))}
-            </div>
+        {/* Right Sidebar - Fixed, starts below ticker (aligned with main section) */}
+        <aside className="fixed right-0 top-[8.5rem] w-[28%] min-w-[380px] max-w-[500px] h-[calc(100vh-8.5rem)] pt-8 pb-8 px-6 border-l border-surface-border/50 overflow-y-auto hidden xl:block bg-surface z-40 scrollbar-hide">
+          <div className="space-y-6">
+            <LLMLeaderboard />
+            <GitHubLeaderboard
+              repos={githubRepos}
+              onLoadMore={fetchMoreGitRepos}
+              hasMore={reposHasMore}
+              isLoading={reposLoading}
+            />
           </div>
+        </aside>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {articles.map((article) => (
-              <ArticleCard key={article.id} article={article} />
-            ))}
-          </div>
-
-          {/* Infinite Scroll Trigger */}
-          <div ref={observerTarget} className="h-10"></div>
-
-          {/* Loading Indicator */}
-          {isLoading && (
-            <div className="flex justify-center items-center py-8">
-              <div className="flex items-center gap-3 text-blue-400">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400"></div>
-                <span className="text-lg font-medium">더 많은 트렌드 로딩 중...</span>
+        {/* Center - Articles (truly centered on viewport) */}
+        <main className="pt-8 pb-8 px-8">
+          <div className="max-w-xl mx-auto">
+            {/* Articles Section */}
+            <section>
+              {/* Section Header */}
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold text-text-primary">트렌딩 아티클</h2>
               </div>
-            </div>
-          )}
 
-          {/* Login Prompt for Anonymous Users - Design Option */}
-          {!isAuthenticated && loadCount >= MAX_ANONYMOUS_LOADS && hasMore && (
-            <div className="relative py-8 mt-12">
-              {/* Blurred Preview Cards in Background */}
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6 relative">
-                {[1, 2, 3].map((i) => (
-                  <div
-                    key={i}
-                    className="bg-[#1a1d29] rounded-xl p-7 border border-gray-700 opacity-40 blur-sm pointer-events-none h-64"
+              {/* Category Tabs */}
+              <div className="flex flex-wrap gap-2 mb-8">
+                {categories.map((category) => (
+                  <button
+                    key={category.id}
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setSelectedCategory(category.id);
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                      selectedCategory === category.id
+                        ? 'bg-accent text-white'
+                        : 'text-text-muted hover:text-text-secondary hover:bg-surface-card'
+                    }`}
                   >
-                    <div className="h-6 bg-gray-700 rounded w-3/4 mb-4"></div>
-                    <div className="h-4 bg-gray-700 rounded w-full mb-2"></div>
-                    <div className="h-4 bg-gray-700 rounded w-5/6"></div>
-                  </div>
+                    {category.label}
+                  </button>
                 ))}
               </div>
 
-              {/* Centered Login Card Overlay */}
-              <div className="absolute inset-0 flex items-center justify-center px-4 pt-8">
-                <div className="bg-[#0f1117]/95 backdrop-blur-xl rounded-2xl p-8 md:p-12 border-2 border-blue-500/30 shadow-2xl max-w-lg w-full">
-                  <div className="text-center">
-                    {/* Icon */}
-                    <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-500/20 rounded-full mb-4">
-                      <svg
-                        className="w-8 h-8 text-blue-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+              {/* Article List */}
+              <div className="space-y-4">
+                {articles.map((article) => (
+                  <ArticleCard key={article.id} article={article} />
+                ))}
+              </div>
+
+              {/* Infinite Scroll Trigger */}
+              <div ref={observerTarget} className="h-10" />
+
+              {/* Loading Indicator */}
+              {isLoading && (
+                <div className="flex justify-center items-center py-12">
+                  <div className="w-6 h-6 border-2 border-surface-border border-t-accent rounded-full animate-spin" />
+                </div>
+              )}
+
+              {/* Login Prompt for Anonymous Users */}
+              {!isAuthenticated && loadCount >= MAX_ANONYMOUS_LOADS && hasMore && (
+                <div className="relative py-12 mt-8">
+                  {/* Blurred Preview */}
+                  <div className="space-y-4 mb-8">
+                    {[1, 2, 3].map((i) => (
+                      <div
+                        key={i}
+                        className="bg-surface-card rounded-2xl p-6 border border-surface-border opacity-30 blur-sm h-32"
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                        />
-                      </svg>
-                    </div>
-
-                    {/* Title */}
-                    <h3 className="text-2xl md:text-3xl font-bold text-white mb-3">
-                      더 많은 트렌드를 확인하세요
-                    </h3>
-
-                    {/* Description */}
-                    <p className="text-gray-300 mb-6 text-base">
-                      로그인하시면 <span className="text-blue-400 font-semibold">무제한</span>으로<br />
-                      모든 개발 트렌드와 기술 블로그를 한 눈에 확인 수 있습니다
-                    </p>
-
-                    {/* Stats */}
-                    <div className="flex items-center justify-center gap-6 mb-6 text-sm text-gray-400">
-                      <div className="flex items-center gap-2">
-                        <svg className="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
-                        </svg>
-                        <span>10,000+ 개발자</span>
+                        <div className="h-3 bg-surface-hover rounded w-1/4 mb-4" />
+                        <div className="h-4 bg-surface-hover rounded w-3/4 mb-2" />
+                        <div className="h-4 bg-surface-hover rounded w-1/2" />
                       </div>
-                      <div className="flex items-center gap-2">
-                        <svg className="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M5 2a1 1 0 011 1v1h1a1 1 0 010 2H6v1a1 1 0 01-2 0V6H3a1 1 0 010-2h1V3a1 1 0 011-1zm0 10a1 1 0 011 1v1h1a1 1 0 110 2H6v1a1 1 0 11-2 0v-1H3a1 1 0 110-2h1v-1a1 1 0 011-1zM12 2a1 1 0 01.967.744L14.146 7.2 17.5 9.134a1 1 0 010 1.732l-3.354 1.935-1.18 4.455a1 1 0 01-1.933 0L9.854 12.8 6.5 10.866a1 1 0 010-1.732l3.354-1.935 1.18-4.455A1 1 0 0112 2z" clipRule="evenodd" />
+                    ))}
+                  </div>
+
+                  {/* Login CTA */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="bg-surface-card/95 backdrop-blur-xl rounded-2xl p-10 border border-surface-border shadow-soft max-w-md w-full text-center">
+                      <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center mx-auto mb-4">
+                        <svg className="w-6 h-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                         </svg>
-                        <span>매일 업데이트</span>
                       </div>
+
+                      <h3 className="text-xl font-medium text-text-primary mb-2">
+                        더 많은 트렌드 확인하기
+                      </h3>
+
+                      <p className="text-sm text-text-muted mb-6">
+                        로그인하고 무료로 개발 트렌드를 무제한으로 확인하세요
+                      </p>
+
+                      <button
+                        onClick={() => navigate('/login')}
+                        className="w-full py-3 bg-accent hover:bg-accent-light text-white font-medium rounded-xl transition-colors"
+                      >
+                        로그인
+                      </button>
+
+                      <p className="text-xs text-text-muted mt-4">
+                        {articles.length}개의 글을 확인했습니다
+                      </p>
                     </div>
-
-                    {/* CTA Button */}
-                    <button
-                      onClick={() => navigate('/login')}
-                      className="w-full px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold rounded-xl transition-all shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
-                    >
-                      무료로 시작하기 →
-                    </button>
-
-                    {/* Progress Indicator */}
-                    <p className="text-xs text-gray-500 mt-4">
-                      {articles.length}개의 글을 확인하셨습니다
-                    </p>
                   </div>
                 </div>
-              </div>
-            </div>
-          )}
+              )}
 
-          {/* End Message */}
-          {!hasMore && articles.length > 0 && (
-            <div className="text-center py-8 text-gray-400">
-              <p className="text-sm">모든 트렌드를 확인했습니다 ({articles.length}개)</p>
-            </div>
-          )}
-
-          {/* Empty State */}
-          {articles.length === 0 && !isLoading && (
-            <div className="text-center py-12 text-gray-400">
-              <p className="text-lg"></p>
-            </div>
-          )}
-        </section>
-      </main>
+              {/* End Message */}
+              {!hasMore && articles.length > 0 && (
+                <div className="text-center py-12">
+                  <p className="text-sm text-text-muted">모든 트렌드를 확인했습니다</p>
+                </div>
+              )}
+            </section>
+          </div>
+        </main>
+      </div>
 
       {/* Footer */}
-      <footer className="bg-navy text-white mt-16 py-8">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="text-center md:text-left">
-              <p className="text-lg font-semibold">devport.kr</p>
-              <p className="text-sm text-gray-300 mt-1">개발자를 위한 글로벌 트렌드 포털</p>
+      <footer className="border-t border-surface-border mt-20">
+        <div className="max-w-6xl mx-auto px-6 py-12">
+          <div className="flex flex-col md:flex-row justify-between items-start gap-8">
+            {/* Brand */}
+            <div>
+              <div className="flex items-center gap-0.5 mb-2">
+                <span className="text-lg font-semibold text-text-primary">devport</span>
+                <span className="text-accent text-lg font-semibold">.</span>
+              </div>
+              <p className="text-sm text-text-muted">개발자를 위한 글로벌 트렌드 포털</p>
             </div>
 
-            <div className="flex gap-6 text-sm">
-              <a href="#" className="text-primary-light hover:text-white transition-colors">
-                About DevPort
-              </a>
-              <a href="#" className="text-primary-light hover:text-white transition-colors">
-                Privacy
-              </a>
-              <a href="#" className="text-primary-light hover:text-white transition-colors">
-                Terms
-              </a>
-              <a href="#" className="text-primary-light hover:text-white transition-colors">
-                Contact
-              </a>
+            {/* Links */}
+            <div className="flex gap-8 text-sm">
+              <a href="#" className="text-text-muted hover:text-text-secondary transition-colors">About</a>
+              <a href="#" className="text-text-muted hover:text-text-secondary transition-colors">Privacy</a>
+              <a href="#" className="text-text-muted hover:text-text-secondary transition-colors">Terms</a>
+              <a href="#" className="text-text-muted hover:text-text-secondary transition-colors">Contact</a>
             </div>
           </div>
 
-          <div className="mt-6 pt-6 border-t border-gray-700 text-center text-sm text-gray-400">
-            © 2025 devport.kr - All rights reserved
+          <div className="mt-8 pt-8 border-t border-surface-border">
+            <p className="text-xs text-text-muted text-center">
+              © 2025 devport.kr
+            </p>
           </div>
         </div>
       </footer>

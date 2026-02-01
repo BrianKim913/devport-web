@@ -24,14 +24,13 @@ export default function TrendingTicker({ articles }: TrendingTickerProps) {
     if (!scrollContainer) return;
 
     let scrollAmount = 0;
-    const scrollStep = 1; // pixels per frame
-    const scrollInterval = 30; // ms between frames
+    const scrollStep = 0.5;
+    const scrollInterval = 30;
 
     const autoScroll = setInterval(() => {
       scrollAmount += scrollStep;
       scrollContainer.scrollLeft = scrollAmount;
 
-      // Reset to beginning when we reach the end
       if (scrollAmount >= scrollContainer.scrollWidth / 2) {
         scrollAmount = 0;
       }
@@ -40,32 +39,32 @@ export default function TrendingTicker({ articles }: TrendingTickerProps) {
     return () => clearInterval(autoScroll);
   }, []);
 
-  // Duplicate articles for infinite scroll effect
   const duplicatedArticles = [...articles, ...articles];
 
+  if (articles.length === 0) return null;
+
   return (
-    <div className="bg-gradient-to-r from-blue-600 to-indigo-700 mb-8 overflow-hidden rounded-lg border border-blue-500/30">
+    <div className="bg-surface-elevated/30">
       <div
         ref={scrollRef}
-        className="flex overflow-x-hidden py-5"
+        className="flex overflow-x-hidden py-4"
         style={{ scrollBehavior: 'auto' }}
       >
-        <div className="flex gap-6 px-6 animate-scroll">
+        <div className="flex gap-12 px-6">
           {duplicatedArticles.map((article, index) => (
             <a
               key={`${article.id}-${index}`}
               href={article.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-shrink-0 group cursor-pointer"
+              className="flex-shrink-0 group"
             >
-              <div className="flex items-center gap-4 min-w-[400px] hover:opacity-80 transition-opacity">
-                <div className="flex-1">
-                  <p className="text-base font-semibold text-white group-hover:text-blue-100 transition-colors line-clamp-1">
-                    {article.summaryKoTitle}
-                  </p>
-                </div>
-                <span className="text-sm text-white/80 whitespace-nowrap">
+              <div className="flex items-center gap-6 min-w-[380px]">
+                <span className="w-1.5 h-1.5 rounded-full bg-accent flex-shrink-0" />
+                <p className="text-sm text-text-secondary group-hover:text-text-primary transition-colors line-clamp-1">
+                  {article.summaryKoTitle}
+                </p>
+                <span className="text-xs text-text-muted whitespace-nowrap">
                   {formatTimeAgo(article.createdAtSource)}
                 </span>
               </div>

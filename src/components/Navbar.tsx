@@ -19,18 +19,23 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="bg-[#0d0f14] border-b border-gray-800 sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-6">
+    <nav className="bg-surface/80 backdrop-blur-xl border-b border-surface-border/50 sticky top-0 z-50">
+      <div className="max-w-6xl mx-auto px-6">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-3 text-white hover:opacity-90 transition-opacity">
-            <span className="text-xl font-bold">devport.kr</span>
+          <Link
+            to="/"
+            className="flex items-center gap-1 group"
+          >
+            <span className="text-xl font-semibold text-text-primary tracking-tight">
+              devport
+            </span>
+            <span className="text-accent text-xl font-semibold">.</span>
           </Link>
 
           {/* Navigation Links */}
-          <ul className="flex items-center gap-1">
+          <ul className="hidden md:flex items-center gap-1">
             {navLinks.map((link) => {
-              // Hide auth-required links if not authenticated
               if (link.requiresAuth && !isAuthenticated) return null;
 
               return (
@@ -38,10 +43,10 @@ export default function Navbar() {
                   <Link
                     to={link.path}
                     onClick={() => setActiveTab(link.id)}
-                    className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                    className={`px-4 py-2 text-sm font-medium transition-colors ${
                       activeTab === link.id
-                        ? 'bg-white/20 text-white'
-                        : 'text-white/90 hover:bg-white/10'
+                        ? 'text-text-primary'
+                        : 'text-text-muted hover:text-text-secondary'
                     }`}
                   >
                     {link.label}
@@ -52,39 +57,55 @@ export default function Navbar() {
           </ul>
 
           {/* Right side actions */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             {isAuthenticated ? (
               <div className="relative">
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+                  className="flex items-center gap-2.5 hover:opacity-80 transition-opacity"
                 >
                   <img
                     src={user?.profileImageUrl || 'https://via.placeholder.com/40'}
                     alt={user?.name || 'User'}
-                    className="w-8 h-8 rounded-full border-2 border-blue-500"
+                    className="w-8 h-8 rounded-full ring-1 ring-surface-border"
                   />
-                  <span className="hidden md:block text-white font-medium">{user?.name}</span>
+                  <span className="hidden md:block text-sm text-text-secondary">
+                    {user?.name}
+                  </span>
+                  <svg
+                    className={`w-4 h-4 text-text-muted transition-transform ${showUserMenu ? 'rotate-180' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 9l-7 7-7-7" />
+                  </svg>
                 </button>
 
                 {/* User Dropdown Menu */}
                 {showUserMenu && (
-                  <div className="absolute right-0 mt-2 w-48 bg-[#1a1d29] rounded-lg shadow-lg border border-gray-700 py-2">
-                    <div className="px-4 py-2 border-b border-gray-700">
-                      <p className="text-sm text-white font-medium">{user?.name}</p>
-                      <p className="text-xs text-gray-400">{user?.email}</p>
+                  <div className="absolute right-0 mt-2 w-56 bg-surface-card rounded-xl shadow-soft border border-surface-border py-1 animate-fade-in">
+                    <div className="px-4 py-3 border-b border-surface-border">
+                      <p className="text-sm font-medium text-text-primary truncate">{user?.name}</p>
+                      <p className="text-xs text-text-muted truncate mt-0.5">{user?.email}</p>
                     </div>
                     <Link
                       to="/mypage"
-                      className="block px-4 py-2 text-sm text-white hover:bg-white/10 transition-colors"
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors"
                       onClick={() => setShowUserMenu(false)}
                     >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
                       마이페이지
                     </Link>
                     <button
                       onClick={handleLogout}
-                      className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-white/10 transition-colors"
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-surface-hover transition-colors"
                     >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                      </svg>
                       로그아웃
                     </button>
                   </div>
@@ -92,24 +113,21 @@ export default function Navbar() {
               </div>
             ) : (
               <>
-                <button className="hidden md:block text-white/90 hover:text-white transition-colors font-medium border-b border-transparent hover:border-white pb-0.5">
+                <button className="hidden md:block text-sm text-text-muted hover:text-text-secondary transition-colors">
                   구독하기
                 </button>
                 <button
                   onClick={() => navigate('/login')}
-                  className="hidden md:flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-600 transition-colors"
+                  className="px-4 py-2 text-sm font-medium bg-accent hover:bg-accent-light text-white rounded-lg transition-colors"
                 >
-                  <span>로그인</span>
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 12 12">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.333 2.667L7.667 6 4.333 9.333" />
-                  </svg>
+                  로그인
                 </button>
               </>
             )}
 
             {/* Mobile menu button */}
-            <button className="md:hidden text-white">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button className="md:hidden text-text-secondary hover:text-text-primary transition-colors">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
