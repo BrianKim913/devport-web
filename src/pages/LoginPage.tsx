@@ -7,22 +7,20 @@ import { useAuth } from '../contexts/AuthContext';
 export default function LoginPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { isAuthenticated, refreshUser } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check for error from OAuth redirect
     const error = searchParams.get('error');
     if (error === 'auth_failed') {
-      setErrorMessage('로그인에 실패했습니다. 봇 검증이 만료되었거나 실패했습니다. 다시 시도해주세요.');
+      setErrorMessage('로그인에 실패했습니다. 다시 시도해주세요.');
     } else if (error === 'turnstile_failed') {
-      setErrorMessage('봇 검증에 실패했습니다. 페이지를 새로고침하고 다시 시도해주세요.');
+      setErrorMessage('봇 검증에 실패했습니다. 페이지를 새로고침해주세요.');
     }
   }, [searchParams]);
 
   useEffect(() => {
-    // Redirect to home if already authenticated
     if (isAuthenticated) {
       navigate('/', { replace: true });
     }
@@ -33,7 +31,6 @@ export default function LoginPage() {
       alert('봇 검증을 완료해주세요.');
       return;
     }
-    // Pass Turnstile token as query parameter to OAuth endpoint
     initiateOAuthLogin('github', turnstileToken);
   };
 
@@ -42,35 +39,45 @@ export default function LoginPage() {
       alert('봇 검증을 완료해주세요.');
       return;
     }
-    // Pass Turnstile token as query parameter to OAuth endpoint
     initiateOAuthLogin('google', turnstileToken);
   };
 
+  const handleNaverLogin = () => {
+    if (!turnstileToken) {
+      alert('봇 검증을 완료해주세요.');
+      return;
+    }
+    initiateOAuthLogin('naver', turnstileToken);
+  };
+
   return (
-    <div className="min-h-screen bg-[#0f1117] flex items-center justify-center px-6">
-      <div className="max-w-md w-full">
-        {/* Logo/Brand */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-extrabold text-white mb-2">devport.kr</h1>
-          <p className="text-gray-400">개발자를 위한 글로벌 트렌드 포털</p>
+    <div className="min-h-screen flex items-center justify-center px-6">
+      <div className="max-w-sm w-full">
+        {/* Brand */}
+        <div className="text-center mb-10">
+          <Link to="/" className="inline-flex items-center gap-0.5 mb-3">
+            <span className="text-3xl font-semibold text-text-primary">devport</span>
+            <span className="text-accent text-3xl font-semibold">.</span>
+          </Link>
+          <p className="text-sm text-text-muted">개발자를 위한 글로벌 트렌드 포털</p>
         </div>
 
         {/* Login Card */}
-        <div className="bg-[#1a1d29] rounded-2xl p-8 border border-gray-700">
-          <h2 className="text-2xl font-bold text-white mb-6 text-center">로그인</h2>
+        <div className="bg-surface-card rounded-2xl p-8 border border-surface-border">
+          <h2 className="text-lg font-medium text-text-primary mb-6 text-center">로그인</h2>
 
           {/* Error Message */}
           {errorMessage && (
-            <div className="mb-4 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
+            <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
               <p className="text-sm text-red-400 text-center">{errorMessage}</p>
             </div>
           )}
 
-          <div className="space-y-4">
-            {/* GitHub Login Button */}
+          <div className="space-y-3">
+            {/* GitHub */}
             <button
               onClick={handleGitHubLogin}
-              className="w-full flex items-center justify-center gap-3 px-6 py-3 bg-[#24292e] hover:bg-[#2f363d] text-white font-semibold rounded-lg transition-all border border-gray-600 hover:border-gray-500"
+              className="w-full flex items-center justify-center gap-3 px-5 py-3 bg-[#24292e] hover:bg-[#2f363d] text-white text-sm font-medium rounded-xl transition-colors"
             >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
@@ -78,10 +85,10 @@ export default function LoginPage() {
               GitHub로 계속하기
             </button>
 
-            {/* Google Login Button */}
+            {/* Google */}
             <button
               onClick={handleGoogleLogin}
-              className="w-full flex items-center justify-center gap-3 px-6 py-3 bg-white hover:bg-gray-100 text-gray-800 font-semibold rounded-lg transition-all border border-gray-300"
+              className="w-full flex items-center justify-center gap-3 px-5 py-3 bg-white hover:bg-gray-50 text-gray-700 text-sm font-medium rounded-xl transition-colors border border-gray-200"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -91,9 +98,20 @@ export default function LoginPage() {
               </svg>
               Google로 계속하기
             </button>
+
+            {/* Naver */}
+            <button
+              onClick={handleNaverLogin}
+              className="w-full flex items-center justify-center gap-3 px-5 py-3 bg-[#03C75A] hover:bg-[#02b350] text-white text-sm font-medium rounded-xl transition-colors"
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M16.273 12.845L7.376 0H0v24h7.727V11.155L16.624 24H24V0h-7.727v12.845z"/>
+              </svg>
+              Naver로 계속하기
+            </button>
           </div>
 
-          {/* Cloudflare Turnstile */}
+          {/* Turnstile */}
           <div className="mt-6 flex justify-center">
             <Turnstile
               siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
@@ -107,24 +125,24 @@ export default function LoginPage() {
             />
           </div>
 
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-400">
-              로그인하면 DevPort의{' '}
-              <Link to="/terms" className="text-blue-400 hover:text-blue-300 underline">이용약관</Link>과{' '}
-              <Link to="/privacy" className="text-blue-400 hover:text-blue-300 underline">개인정보 처리방침</Link>에<br />
-              동의하는 것으로 간주됩니다.
-            </p>
-          </div>
+          {/* Terms */}
+          <p className="mt-6 text-xs text-text-muted text-center leading-relaxed">
+            로그인하면{' '}
+            <Link to="/terms" className="text-text-secondary hover:text-text-primary underline">이용약관</Link>
+            과{' '}
+            <Link to="/privacy" className="text-text-secondary hover:text-text-primary underline">개인정보 처리방침</Link>
+            에 동의하는 것으로 간주됩니다.
+          </p>
         </div>
 
-        {/* Back to Home */}
+        {/* Back link */}
         <div className="mt-6 text-center">
-          <a
-            href="/"
-            className="text-sm text-gray-400 hover:text-white transition-colors"
+          <Link
+            to="/"
+            className="text-sm text-text-muted hover:text-text-secondary transition-colors"
           >
-            ← 홈으로 돌아가기
-          </a>
+            ← 홈으로
+          </Link>
         </div>
       </div>
     </div>

@@ -32,33 +32,28 @@ export default function ArticleCard({ article, variant = 'default' }: ArticleCar
         href={article.url}
         target="_blank"
         rel="noopener noreferrer"
-        className="block bg-[#1a1d29] rounded-lg p-6 border border-gray-700 hover:border-blue-500/50 transition-all cursor-pointer"
+        className="block bg-surface-card rounded-xl p-5 border border-surface-border hover:border-surface-border/80 hover:bg-surface-hover transition-all group"
       >
-        <div className="flex items-center flex-wrap gap-2 mb-3" onClickCapture={(e) => e.stopPropagation()}>
-          <span
-            className={`px-3 py-1 rounded-full text-white text-sm font-semibold ${categoryInfo.color}`}
-          >
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-2xs font-medium uppercase tracking-wider text-text-muted">
             {categoryInfo.label}
           </span>
-          <span className="px-3 py-1 rounded-full bg-gray-700/50 text-gray-300 text-xs">
-            {sourceLabel}
-          </span>
-          {article.metadata?.readTime && (
-            <span className="px-3 py-1 rounded-full bg-gray-700/50 text-gray-300 text-xs flex items-center gap-1.5">
-              <BookIcon className="w-3 h-3" />
-              <span>{article.metadata.readTime.replace(' read', '')}</span>
-            </span>
-          )}
+          <span className="text-text-muted">·</span>
+          <span className="text-2xs text-text-muted">{sourceLabel}</span>
         </div>
 
-        <h3 className="text-lg font-bold text-white mb-2 line-clamp-2 group-hover:text-blue-400 transition-colors">
+        <h3 className="text-base font-medium text-text-primary mb-3 line-clamp-2 group-hover:text-accent transition-colors">
           {article.summaryKoTitle}
         </h3>
 
-        <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-700">
-          <div className="flex items-center gap-4 text-sm text-gray-400">
-            <span>{formatTimeAgo(article.createdAtSource)}</span>
-          </div>
+        <div className="flex items-center gap-3 text-xs text-text-muted">
+          {article.metadata?.readTime && (
+            <span className="flex items-center gap-1">
+              <BookIcon className="w-3.5 h-3.5" />
+              {article.metadata.readTime.replace(' read', '')}
+            </span>
+          )}
+          <span>{formatTimeAgo(article.createdAtSource)}</span>
         </div>
       </a>
     );
@@ -69,79 +64,83 @@ export default function ArticleCard({ article, variant = 'default' }: ArticleCar
       href={article.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="block bg-[#1a1d29] rounded-xl overflow-hidden transition-all border border-gray-700 hover:border-blue-500/50 cursor-pointer group h-full"
+      className="block py-6 border-b border-surface-border hover:bg-surface-card/30 transition-all group -mx-4 px-4"
     >
-      <div className="p-7 h-full flex flex-col">
-        <div className="flex items-center flex-wrap gap-2 mb-4" onClickCapture={(e) => e.stopPropagation()}>
-          <span className={`px-4 py-1.5 rounded-full text-white text-sm font-semibold ${categoryInfo.color}`}>
-            {categoryInfo.label}
-          </span>
-          <span className="px-4 py-1.5 rounded-full bg-gray-700/50 text-gray-300 text-sm">
-            {sourceLabel}
-          </span>
-          {article.metadata?.readTime && (
-            <span className="px-4 py-1.5 rounded-full bg-gray-700/50 text-gray-300 text-sm flex items-center gap-2">
-              <BookIcon className="w-4 h-4" />
-              <span>{article.metadata.readTime.replace(' read', '')}</span>
+      {/* Header */}
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-xs font-medium text-accent">
+          {categoryInfo.label}
+        </span>
+        <span className="text-text-muted">·</span>
+        <span className="text-xs text-text-muted">
+          {sourceLabel}
+        </span>
+        <span className="text-text-muted">·</span>
+        <span className="text-xs text-text-muted">{formatTimeAgo(article.createdAtSource)}</span>
+        {article.metadata?.readTime && (
+          <>
+            <span className="text-text-muted">·</span>
+            <span className="text-xs text-text-muted flex items-center gap-1">
+              <BookIcon className="w-3 h-3" />
+              {article.metadata.readTime.replace(' read', '')}
+            </span>
+          </>
+        )}
+      </div>
+
+      {/* Title */}
+      <h2 className="text-lg font-semibold text-text-primary mb-2 leading-snug group-hover:text-accent transition-colors">
+        {article.summaryKoTitle}
+      </h2>
+
+      {/* Summary or English title */}
+      <p className="text-sm text-text-secondary mb-4 line-clamp-2">
+        {article.summaryKoBody || article.titleEn}
+      </p>
+
+      {/* Tags & Stats */}
+      <div className="flex items-center justify-between">
+        {/* Tags */}
+        <div className="flex flex-wrap gap-1.5">
+          {article.tags.slice(0, 3).map((tag) => (
+            <span
+              key={tag}
+              className="text-xs text-text-muted px-2 py-0.5 rounded bg-surface-hover"
+            >
+              {tag}
+            </span>
+          ))}
+          {article.tags.length > 3 && (
+            <span className="text-xs text-text-muted px-2 py-0.5">
+              +{article.tags.length - 3}
             </span>
           )}
         </div>
 
-        <h2 className="text-2xl font-bold text-white mb-3 leading-tight group-hover:text-blue-400 transition-colors">
-          {article.summaryKoTitle}
-        </h2>
-
-        <p className="text-gray-400 mb-4 leading-relaxed">
-          {article.titleEn}
-        </p>
-
-        {article.summaryKoBody && (
-          <p className="text-gray-300 mb-4 leading-relaxed">
-            {article.summaryKoBody}
-          </p>
-        )}
-
-        <div className="flex flex-wrap gap-2 mb-4" onClickCapture={(e) => e.stopPropagation()}>
-          {article.tags.map((tag) => (
-            <span
-              key={tag}
-              className="bg-blue-500/20 text-blue-400 px-3 py-1 rounded-md text-sm font-medium border border-blue-500/30"
-            >
-              #{tag}
+        {/* Stats */}
+        <div className="flex items-center gap-3 text-xs text-text-muted">
+          <span className="flex items-center gap-1 text-accent">
+            <FlameIcon className="w-3.5 h-3.5" />
+            {article.score.toLocaleString()}
+          </span>
+          {article.metadata?.stars && (
+            <span className="flex items-center gap-1">
+              <StarIcon className="w-3.5 h-3.5" />
+              {article.metadata.stars.toLocaleString()}
             </span>
-          ))}
-        </div>
-
-        <div className="mt-auto pt-4 border-t border-gray-700 relative group/metadata">
-          <div className="flex items-center justify-between flex-wrap gap-4 text-sm text-gray-400">
-            <span className="flex items-center gap-1.5">
-              <FlameIcon className="w-4 h-4" />
-              {article.score.toLocaleString()} 점
+          )}
+          {article.metadata?.comments && (
+            <span className="flex items-center gap-1">
+              <MessageIcon className="w-3.5 h-3.5" />
+              {article.metadata.comments}
             </span>
-            {article.metadata?.stars && (
-              <span className="flex items-center gap-1.5">
-                <StarIcon className="w-4 h-4" />
-                {article.metadata.stars.toLocaleString()}
-              </span>
-            )}
-            {article.metadata?.comments && (
-              <span className="flex items-center gap-1.5">
-                <MessageIcon className="w-4 h-4" />
-                {article.metadata.comments}
-              </span>
-            )}
-            {article.metadata?.upvotes && (
-              <span className="flex items-center gap-1.5">
-                <ThumbsUpIcon className="w-4 h-4" />
-                {article.metadata.upvotes}
-              </span>
-            )}
-            <span>{formatTimeAgo(article.createdAtSource)}</span>
-          </div>
-          <p className="mt-2 text-xs text-gray-500 opacity-0 transition-opacity group-hover/metadata:opacity-100 space-y-0.5">
-            <span className="block">불꽃 점수는 조회수·반응·댓글·날짜 정보를 반영한 점수 입니다.</span>
-            <span className="block">댓글과 좋아요 수는 해당 출처 혹은 Reddit에서 집계된 값입니다.</span>
-          </p>
+          )}
+          {article.metadata?.upvotes && (
+            <span className="flex items-center gap-1">
+              <ThumbsUpIcon className="w-3.5 h-3.5" />
+              {article.metadata.upvotes}
+            </span>
+          )}
         </div>
       </div>
     </a>
