@@ -9,7 +9,10 @@ import OAuth2RedirectPage from './pages/OAuth2RedirectPage'
 import TermsPage from './pages/TermsPage'
 import PrivacyPage from './pages/PrivacyPage'
 import BenchmarksExplanationPage from './pages/BenchmarksExplanationPage'
+import ArticleDetailPage from './pages/ArticleDetailPage'
+import MyPage from './pages/MyPage'
 import AdminPage from './pages/AdminPage'
+import SearchResultsPage from './pages/SearchResultsPage'
 import ProtectedAdminRoute from './components/ProtectedAdminRoute'
 
 createRoot(document.getElementById('root')!).render(
@@ -20,6 +23,10 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/oauth2/redirect" element={<OAuth2RedirectPage />} />
+          <Route path="/search" element={<SearchResultsPage />} />
+          <Route path="/articles/:externalId" element={<ArticleDetailPage />} />
+          <Route path="/article/:externalId" element={<ArticleDetailPage />} />
+          <Route path="/mypage" element={<MyPage />} />
           <Route path="/benchmarks" element={<BenchmarksExplanationPage />} />
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />

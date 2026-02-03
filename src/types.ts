@@ -21,6 +21,7 @@ export interface GitRepo {
 
 export interface Article {
   id: string;
+  externalId: string;
   itemType: ItemType;
   source: string;
   category: Category;
@@ -117,3 +118,44 @@ export const benchmarkCategoryConfig: Record<BenchmarkCategoryGroup, {
     icon: ''
   }
 };
+
+// Comment Types
+export interface CommentAuthor {
+  id: number;
+  name: string;
+  profileImageUrl?: string;
+}
+
+export interface Comment {
+  id: string;
+  content: string;
+  deleted: boolean;
+  parentId: string | null;
+  author: CommentAuthor;
+  createdAt: string;
+  updatedAt: string;
+  isOwner: boolean;
+}
+
+export interface CommentTreeNode extends Comment {
+  replies: CommentTreeNode[];
+}
+
+// My Page Types
+export interface SavedArticle {
+  articleId: string;
+  summaryKoTitle: string;
+  source: string;
+  category: string;
+  url: string;
+  savedAt: string;
+}
+
+export interface ReadHistory {
+  articleId: string;
+  summaryKoTitle: string;
+  source: string;
+  category: string;
+  url: string;
+  readAt: string;
+}

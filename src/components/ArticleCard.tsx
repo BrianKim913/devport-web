@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import type { Article } from '../types';
 import { categoryConfig } from '../types';
 import StarIcon from './icons/StarIcon';
@@ -5,6 +6,7 @@ import MessageIcon from './icons/MessageIcon';
 import ThumbsUpIcon from './icons/ThumbsUpIcon';
 import BookIcon from './icons/BookIcon';
 import FlameIcon from './icons/FlameIcon';
+import BookmarkButton from './BookmarkButton';
 
 interface ArticleCardProps {
   article: Article;
@@ -28,10 +30,8 @@ export default function ArticleCard({ article, variant = 'default' }: ArticleCar
 
   if (variant === 'compact') {
     return (
-      <a
-        href={article.url}
-        target="_blank"
-        rel="noopener noreferrer"
+      <Link
+        to={`/articles/${article.externalId}`}
         className="block bg-surface-card rounded-xl p-5 border border-surface-border hover:border-surface-border/80 hover:bg-surface-hover transition-all group"
       >
         <div className="flex items-center gap-2 mb-3">
@@ -55,38 +55,38 @@ export default function ArticleCard({ article, variant = 'default' }: ArticleCar
           )}
           <span>{formatTimeAgo(article.createdAtSource)}</span>
         </div>
-      </a>
+      </Link>
     );
   }
 
   return (
-    <a
-      href={article.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="block py-6 border-b border-surface-border hover:bg-surface-card/30 transition-all group -mx-4 px-4"
-    >
+    <div className="block py-6 border-b border-surface-border hover:bg-surface-card/30 transition-all group -mx-4 px-4">
       {/* Header */}
-      <div className="flex items-center gap-2 mb-3">
-        <span className="text-xs font-medium text-accent">
-          {categoryInfo.label}
-        </span>
-        <span className="text-text-muted">·</span>
-        <span className="text-xs text-text-muted">
-          {sourceLabel}
-        </span>
-        <span className="text-text-muted">·</span>
-        <span className="text-xs text-text-muted">{formatTimeAgo(article.createdAtSource)}</span>
-        {article.metadata?.readTime && (
-          <>
-            <span className="text-text-muted">·</span>
-            <span className="text-xs text-text-muted flex items-center gap-1">
-              <BookIcon className="w-3 h-3" />
-              {article.metadata.readTime.replace(' read', '')}
-            </span>
-          </>
-        )}
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium text-accent">
+            {categoryInfo.label}
+          </span>
+          <span className="text-text-muted">·</span>
+          <span className="text-xs text-text-muted">
+            {sourceLabel}
+          </span>
+          <span className="text-text-muted">·</span>
+          <span className="text-xs text-text-muted">{formatTimeAgo(article.createdAtSource)}</span>
+          {article.metadata?.readTime && (
+            <>
+              <span className="text-text-muted">·</span>
+              <span className="text-xs text-text-muted flex items-center gap-1">
+                <BookIcon className="w-3 h-3" />
+                {article.metadata.readTime.replace(' read', '')}
+              </span>
+            </>
+          )}
+        </div>
+        <BookmarkButton articleId={article.externalId} size="sm" />
       </div>
+
+      <Link to={`/articles/${article.externalId}`}>
 
       {/* Title */}
       <h2 className="text-lg font-semibold text-text-primary mb-2 leading-snug group-hover:text-accent transition-colors">
@@ -148,6 +148,7 @@ export default function ArticleCard({ article, variant = 'default' }: ArticleCar
           </div>
         </div>
       </div>
-    </a>
+      </Link>
+    </div>
   );
 }

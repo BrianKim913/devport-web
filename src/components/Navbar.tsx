@@ -1,15 +1,110 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { searchAutocomplete } from '../services/api';
+import type { ArticleAutocompleteResponse } from '../services/api';
 
 export default function Navbar() {
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showAutocomplete, setShowAutocomplete] = useState(false);
+  const [suggestions, setSuggestions] = useState<ArticleAutocompleteResponse[]>([]);
+  const [totalMatches, setTotalMatches] = useState(0);
+  const [isSearching, setIsSearching] = useState(false);
+
   const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
+  const searchRef = useRef<HTMLDivElement>(null);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleLogout = () => {
     logout();
     setShowUserMenu(false);
+  };
+
+  // Close autocomplete when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setShowAutocomplete(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Debounced autocomplete search
+  useEffect(() => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    if (searchQuery.trim().length < 2) {
+      setSuggestions([]);
+      setShowAutocomplete(false);
+      setIsSearching(false);
+      return;
+    }
+
+    setIsSearching(true);
+
+    debounceTimerRef.current = setTimeout(async () => {
+      try {
+        const response = await searchAutocomplete(searchQuery);
+        setSuggestions(response.suggestions);
+        setTotalMatches(response.totalMatches);
+        setShowAutocomplete(true);
+      } catch (error) {
+        console.error('Autocomplete error:', error);
+        setSuggestions([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300); // 300ms debounce
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [searchQuery]);
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim().length >= 2) {
+      setShowAutocomplete(false);
+      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
+
+  const handleSuggestionClick = (externalId: string) => {
+    setShowAutocomplete(false);
+    setSearchQuery('');
+    navigate(`/articles/${externalId}`);
+  };
+
+  const handleViewAllResults = () => {
+    setShowAutocomplete(false);
+    navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+  };
+
+  const getCategoryBadgeColor = (category: string) => {
+    const colors: Record<string, string> = {
+      AI_LLM: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+      DEVOPS_SRE: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+      BACKEND: 'bg-green-500/10 text-green-400 border-green-500/20',
+      FRONTEND: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
+      DATABASE: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
+      INFRA_CLOUD: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
+      MOBILE: 'bg-pink-500/10 text-pink-400 border-pink-500/20',
+      SECURITY: 'bg-red-500/10 text-red-400 border-red-500/20',
+      BLOCKCHAIN: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
+      DATA_SCIENCE: 'bg-teal-500/10 text-teal-400 border-teal-500/20',
+      ARCHITECTURE: 'bg-violet-500/10 text-violet-400 border-violet-500/20',
+      OTHER: 'bg-gray-500/10 text-gray-400 border-gray-500/20',
+    };
+    return colors[category] || colors.OTHER;
   };
 
   return (
@@ -30,20 +125,79 @@ export default function Navbar() {
 
             {/* Search Bar */}
             <div className="hidden md:flex items-center">
-              <div className="relative">
-                <svg
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                <input
-                  type="text"
-                  placeholder="검색..."
-                  className="w-64 pl-10 pr-4 py-2 bg-surface-card border border-surface-border rounded-lg text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent/50 transition-colors"
-                />
+              <div ref={searchRef} className="relative">
+                <form onSubmit={handleSearchSubmit}>
+                  <svg
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <input
+                    type="text"
+                    placeholder="검색..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-64 pl-10 pr-4 py-2 bg-surface-card border border-surface-border rounded-lg text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent/50 transition-colors"
+                  />
+                </form>
+
+                {/* Autocomplete Dropdown */}
+                {showAutocomplete && (
+                  <div className="absolute top-full mt-2 w-96 bg-surface-card border border-surface-border rounded-xl shadow-xl overflow-hidden z-50 animate-fade-in">
+                    {isSearching ? (
+                      <div className="p-4 text-center">
+                        <div className="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-accent"></div>
+                      </div>
+                    ) : suggestions.length > 0 ? (
+                      <>
+                        <div className="max-h-96 overflow-y-auto">
+                          {suggestions.map((suggestion) => (
+                            <button
+                              key={suggestion.externalId}
+                              onClick={() => handleSuggestionClick(suggestion.externalId)}
+                              className="w-full px-4 py-3 hover:bg-surface-hover transition-colors text-left border-b border-surface-border last:border-b-0"
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm text-text-primary font-medium truncate">
+                                    {suggestion.summaryKoTitle}
+                                  </p>
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <span
+                                      className={`text-xs px-2 py-0.5 rounded border ${getCategoryBadgeColor(
+                                        suggestion.category
+                                      )}`}
+                                    >
+                                      {suggestion.category.replace(/_/g, ' ')}
+                                    </span>
+                                    <span className="text-xs text-text-muted">
+                                      {suggestion.source}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                        {totalMatches > suggestions.length && (
+                          <button
+                            onClick={handleViewAllResults}
+                            className="w-full px-4 py-3 text-sm text-accent hover:text-accent-light bg-surface-hover hover:bg-surface-border transition-colors font-medium"
+                          >
+                            모든 결과 보기 ({totalMatches.toLocaleString()}개)
+                          </button>
+                        )}
+                      </>
+                    ) : (
+                      <div className="p-4 text-center text-sm text-text-muted">
+                        검색 결과가 없습니다
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
