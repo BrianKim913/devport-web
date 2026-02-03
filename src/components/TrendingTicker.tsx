@@ -21,7 +21,7 @@ export default function TrendingTicker({ articles }: TrendingTickerProps) {
 
   useEffect(() => {
     const scrollContainer = scrollRef.current;
-    if (!scrollContainer) return;
+    if (!scrollContainer || articles.length === 0) return;
 
     let scrollAmount = 0;
     const scrollStep = 0.5;
@@ -37,7 +37,7 @@ export default function TrendingTicker({ articles }: TrendingTickerProps) {
     }, scrollInterval);
 
     return () => clearInterval(autoScroll);
-  }, []);
+  }, [articles.length]);
 
   const duplicatedArticles = [...articles, ...articles];
 

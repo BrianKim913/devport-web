@@ -30,6 +30,9 @@ export default function HomePage() {
   const [loadCount, setLoadCount] = useState(0);
   const MAX_ANONYMOUS_LOADS = 3;
 
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [showLoadingSpinner, setShowLoadingSpinner] = useState(false);
+
   useEffect(() => {
     const fetchInitialData = async () => {
       setIsLoading(true);
@@ -104,6 +107,7 @@ export default function HomePage() {
       console.error('Failed to fetch more articles:', error);
     } finally {
       setIsLoading(false);
+      setShowLoadingSpinner(false);
     }
   }, [isLoading, hasMore, isAuthenticated, loadCount, currentPage, selectedCategory]);
 
@@ -131,7 +135,18 @@ export default function HomePage() {
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasMore && !isLoading) {
-          fetchMoreArticles();
+          // Show loading spinner immediately for better UX
+          setShowLoadingSpinner(true);
+
+          // Clear any pending timeout
+          if (scrollTimeoutRef.current) {
+            clearTimeout(scrollTimeoutRef.current);
+          }
+
+          // Add a small delay (500ms) to debounce rapid scroll events
+          scrollTimeoutRef.current = setTimeout(() => {
+            fetchMoreArticles();
+          }, 500);
         }
       },
       { threshold: 0.1 }
@@ -145,6 +160,10 @@ export default function HomePage() {
     return () => {
       if (currentTarget) {
         observer.unobserve(currentTarget);
+      }
+      // Clean up timeout on unmount
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
       }
     };
   }, [hasMore, isLoading, fetchMoreArticles, isInitialLoading]);
@@ -240,7 +259,7 @@ export default function HomePage() {
               <div ref={observerTarget} className="h-10" />
 
               {/* Loading Indicator */}
-              {isLoading && (
+              {(isLoading || showLoadingSpinner) && (
                 <div className="flex justify-center items-center py-12">
                   <div className="w-6 h-6 border-2 border-surface-border border-t-accent rounded-full animate-spin" />
                 </div>

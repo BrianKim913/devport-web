@@ -62,12 +62,17 @@ export default function GitHubLeaderboard({ repos, onLoadMore, hasMore, isLoadin
   return (
     <section>
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <GitHubIcon className="w-4 h-4 text-text-secondary" />
-          <h2 className="text-base font-semibold text-text-primary">트렌딩 리포지토리</h2>
+      <div className="mb-4">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <GitHubIcon className="w-4 h-4 text-text-secondary" />
+            <h2 className="text-base font-semibold text-text-primary">트렌딩 리포지토리</h2>
+          </div>
+          <span className="text-xs text-text-muted">GitHub</span>
         </div>
-        <span className="text-xs text-text-muted">GitHub</span>
+        <p className="text-xs text-text-muted">
+          이번 주 GitHub에서 가장 빠르게 성장 중인 오픈소스 프로젝트입니다
+        </p>
       </div>
 
       {/* List */}

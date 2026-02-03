@@ -132,6 +132,27 @@ export interface TrendingTickerResponse {
   createdAtSource: string;
 }
 
+export interface ArticleDetailResponse {
+  externalId: string;
+  itemType: 'BLOG' | 'DISCUSSION' | 'REPO';
+  source: string;
+  category: string;
+  summaryKoTitle: string;
+  summaryKoBody: string;
+  titleEn: string;
+  url: string;
+  score: number;
+  tags: string[];
+  createdAtSource: string;
+  metadata: {
+    stars?: number;
+    comments?: number;
+    upvotes?: number;
+    readTime?: string;
+    language?: string;
+  };
+}
+
 // LLM API Response Types (matching backend DTOs)
 export interface LLMModelSummaryResponse {
   id: number;
@@ -286,6 +307,11 @@ export const getTrendingTicker = async (limit: number = 20): Promise<TrendingTic
   const response = await apiClient.get<TrendingTickerResponse[]>('/api/articles/trending-ticker', {
     params: { limit },
   });
+  return response.data;
+};
+
+export const getArticleByExternalId = async (externalId: string): Promise<ArticleDetailResponse> => {
+  const response = await apiClient.get<ArticleDetailResponse>(`/api/articles/${externalId}`);
   return response.data;
 };
 
@@ -505,6 +531,172 @@ export const adminUpdateBenchmark = async (benchmarkType: string, data: Partial<
 
 export const adminDeleteBenchmark = async (benchmarkType: string): Promise<void> => {
   await apiClient.delete(`/api/admin/llm-benchmarks/${benchmarkType}`);
+};
+
+// Comment API Types
+export interface CommentAuthorResponse {
+  id: number;
+  name: string;
+  profileImageUrl?: string;
+}
+
+export interface CommentResponse {
+  id: string;
+  content: string;
+  deleted: boolean;
+  parentId: string | null;
+  author: CommentAuthorResponse;
+  createdAt: string;
+  updatedAt: string;
+  isOwner: boolean;
+}
+
+export interface CommentCreateRequest {
+  content: string;
+  parentCommentId?: string;
+}
+
+export interface CommentUpdateRequest {
+  content: string;
+}
+
+// Comment APIs
+export const getCommentsByArticle = async (articleId: string): Promise<CommentResponse[]> => {
+  const response = await apiClient.get<CommentResponse[]>(`/api/articles/${articleId}/comments`);
+  return response.data;
+};
+
+export const createComment = async (
+  articleId: string,
+  data: CommentCreateRequest
+): Promise<CommentResponse> => {
+  const response = await apiClient.post<CommentResponse>(`/api/articles/${articleId}/comments`, data);
+  return response.data;
+};
+
+export const updateComment = async (
+  articleId: string,
+  commentId: string,
+  data: CommentUpdateRequest
+): Promise<CommentResponse> => {
+  const response = await apiClient.put<CommentResponse>(
+    `/api/articles/${articleId}/comments/${commentId}`,
+    data
+  );
+  return response.data;
+};
+
+export const deleteComment = async (articleId: string, commentId: string): Promise<void> => {
+  await apiClient.delete(`/api/articles/${articleId}/comments/${commentId}`);
+};
+
+// My Page API Types
+export interface SavedArticleResponse {
+  articleId: string;
+  summaryKoTitle: string;
+  source: string;
+  category: string;
+  url: string;
+  savedAt: string;
+}
+
+export interface ReadHistoryResponse {
+  articleId: string;
+  summaryKoTitle: string;
+  source: string;
+  category: string;
+  url: string;
+  readAt: string;
+}
+
+export interface PageResponse<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  currentPage: number;
+  hasMore: boolean;
+}
+
+// My Page APIs
+export const getSavedArticles = async (
+  page: number = 0,
+  size: number = 20
+): Promise<PageResponse<SavedArticleResponse>> => {
+  const response = await apiClient.get<PageResponse<SavedArticleResponse>>('/api/me/saved-articles', {
+    params: { page, size },
+  });
+  return response.data;
+};
+
+export const saveArticle = async (articleId: string): Promise<void> => {
+  await apiClient.post(`/api/me/saved-articles/${articleId}`);
+};
+
+export const unsaveArticle = async (articleId: string): Promise<void> => {
+  await apiClient.delete(`/api/me/saved-articles/${articleId}`);
+};
+
+export const isArticleSaved = async (articleId: string): Promise<boolean> => {
+  const response = await apiClient.get<{ saved: boolean }>(
+    `/api/me/saved-articles/${articleId}/status`
+  );
+  return response.data.saved;
+};
+
+export const getReadHistory = async (
+  page: number = 0,
+  size: number = 20
+): Promise<PageResponse<ReadHistoryResponse>> => {
+  const response = await apiClient.get<PageResponse<ReadHistoryResponse>>('/api/me/read-history', {
+    params: { page, size },
+  });
+  return response.data;
+};
+
+export const trackArticleView = async (articleId: string): Promise<void> => {
+  try {
+    await apiClient.post(`/api/articles/${articleId}/view`);
+  } catch (error) {
+    // Silent fail - view tracking is non-critical
+    console.error('Failed to track article view:', error);
+  }
+};
+
+// Search API Types
+export interface ArticleAutocompleteResponse {
+  externalId: string;
+  summaryKoTitle: string;
+  source: string;
+  category: string;
+  matchType: 'TITLE' | 'BODY';
+  score: number;
+}
+
+export interface ArticleAutocompleteListResponse {
+  suggestions: ArticleAutocompleteResponse[];
+  totalMatches: number;
+}
+
+// Search APIs
+export const searchAutocomplete = async (query: string): Promise<ArticleAutocompleteListResponse> => {
+  if (!query || query.trim().length < 2) {
+    return { suggestions: [], totalMatches: 0 };
+  }
+  const response = await apiClient.get<ArticleAutocompleteListResponse>('/api/articles/autocomplete', {
+    params: { q: query.trim() },
+  });
+  return response.data;
+};
+
+export const searchFulltext = async (
+  query: string,
+  page: number = 0,
+  size: number = 20
+): Promise<ArticlePageResponse> => {
+  const response = await apiClient.get<ArticlePageResponse>('/api/articles/search/fulltext', {
+    params: { q: query.trim(), page, size },
+  });
+  return response.data;
 };
 
 export default apiClient;
