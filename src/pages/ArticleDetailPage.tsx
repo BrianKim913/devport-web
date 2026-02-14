@@ -6,7 +6,7 @@ import Sidebar from '../components/Sidebar';
 import TrendingTicker from '../components/TrendingTicker';
 import CommentSection from '../components/CommentSection';
 import BookmarkButton from '../components/BookmarkButton';
-import { getArticleByExternalId, getTrendingTicker, trackArticleView, type ArticleDetailResponse } from '../services/api';
+import { getArticleByExternalId, getTrendingTicker, trackArticleView, type ArticleDetailResponse } from '../services/articles/articlesService';
 import type { Category } from '../types';
 import { categoryConfig } from '../types';
 import StarIcon from '../components/icons/StarIcon';

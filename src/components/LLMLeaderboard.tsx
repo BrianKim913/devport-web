@@ -7,7 +7,7 @@ import {
   getAllLLMBenchmarks,
   type LLMLeaderboardEntryResponse,
   type LLMBenchmarkResponse,
-} from '../services/api';
+} from '../services/llm/llmService';
 import AIIcon from './icons/AIIcon';
 import { getProviderInfo } from '../config/providerLogos';
 
@@ -23,9 +23,7 @@ export default function LLMLeaderboard() {
   const [selectedGroup, setSelectedGroup] = useState<BenchmarkCategoryGroup>('Composite');
   const [leaderboardEntries, setLeaderboardEntries] = useState<LLMLeaderboardEntryResponse[]>([]);
   const [allBenchmarks, setAllBenchmarks] = useState<LLMBenchmarkResponse[]>([]);
-  const [currentBenchmarkInfo, setCurrentBenchmarkInfo] = useState<LLMBenchmarkResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [hoveredBenchmark, setHoveredBenchmark] = useState<BenchmarkType | null>(null);
 
   useEffect(() => {
     const fetchBenchmarks = async () => {
@@ -47,9 +45,6 @@ export default function LLMLeaderboard() {
         setIsLoading(true);
         const entries = await getLLMLeaderboard(selectedBenchmark);
         setLeaderboardEntries(entries.slice(0, 50));
-
-        const benchmarkInfo = allBenchmarks.find(b => b.benchmarkType === selectedBenchmark);
-        setCurrentBenchmarkInfo(benchmarkInfo || null);
       } catch (error) {
         console.error('Failed to fetch leaderboard:', error);
       } finally {
@@ -74,10 +69,6 @@ export default function LLMLeaderboard() {
     return group === selectedGroup;
   });
   const shouldShowBenchmarkTabs = displayBenchmarks.length > 1;
-
-  const hoveredBenchmarkInfo = hoveredBenchmark
-    ? allBenchmarks.find(b => b.benchmarkType === hoveredBenchmark)
-    : null;
 
   return (
     <section>
@@ -131,8 +122,6 @@ export default function LLMLeaderboard() {
                 <div key={benchmark.benchmarkType} className="relative">
                   <button
                     onClick={() => setSelectedBenchmark(benchmark.benchmarkType as BenchmarkType)}
-                    onMouseEnter={() => setHoveredBenchmark(benchmark.benchmarkType as BenchmarkType)}
-                    onMouseLeave={() => setHoveredBenchmark(null)}
                     className={`px-2 py-0.5 rounded text-xs transition-all ${
                       isSelected
                         ? 'bg-surface-hover text-text-primary'
@@ -141,26 +130,10 @@ export default function LLMLeaderboard() {
                   >
                     {benchmark.displayName}
                   </button>
-
-                  {/* Tooltip */}
-                  {hoveredBenchmark === benchmark.benchmarkType && hoveredBenchmarkInfo && (
-                    <div className="absolute z-50 bottom-full left-0 mb-2 w-56 p-2 bg-surface-elevated border border-surface-border rounded-lg shadow-soft animate-fade-in">
-                      <p className="text-xs text-text-secondary leading-relaxed">
-                        {hoveredBenchmarkInfo.description}
-                      </p>
-                    </div>
-                  )}
                 </div>
               );
             })}
           </div>
-        )}
-
-        {/* Current Benchmark Description */}
-        {currentBenchmarkInfo && (
-          <p className="mt-2 text-xs text-text-muted line-clamp-2">
-            {currentBenchmarkInfo.description}
-          </p>
         )}
       </div>
 

@@ -49,3 +49,6 @@ API_INTEGRATION.md
 *.tmp
 *.temp
 .cache/
+
+# Local planning workspace
+.planning/

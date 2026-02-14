@@ -6,7 +6,7 @@ import TrendingTicker from '../components/TrendingTicker';
 import GitHubLeaderboard from '../components/GitHubLeaderboard';
 import LLMLeaderboard from '../components/LLMLeaderboard';
 import ArticleCard from '../components/ArticleCard';
-import { getArticles, getTrendingGitReposPaginated, getTrendingTicker } from '../services/api';
+import { getArticles, getTrendingGitReposPaginated, getTrendingTicker } from '../services/articles/articlesService';
 import type { Article, GitRepo, Category } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 

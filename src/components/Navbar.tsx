@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { searchAutocomplete } from '../services/api';
-import type { ArticleAutocompleteResponse } from '../services/api';
+import { searchAutocomplete } from '../services/search/searchService';
+import type { ArticleAutocompleteResponse } from '../services/search/searchService';
 
 export default function Navbar() {
   const [showUserMenu, setShowUserMenu] = useState(false);

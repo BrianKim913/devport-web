@@ -6,7 +6,7 @@ import {
   updateComment,
   deleteComment,
   type CommentResponse,
-} from '../services/api';
+} from '../services/articles/commentsService';
 import CommentForm from './CommentForm';
 import CommentItem from './CommentItem';
 

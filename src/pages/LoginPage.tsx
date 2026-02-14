@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { Turnstile } from '@marsidev/react-turnstile';
-import { initiateOAuthLogin, login } from '../services/api';
+import { initiateOAuthLogin, login } from '../services/auth/authService';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function LoginPage() {

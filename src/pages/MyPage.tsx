@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
-import { getSavedArticles, getReadHistory, unsaveArticle, updateProfile, changePassword } from '../services/api';
+import { getSavedArticles, getReadHistory, unsaveArticle } from '../services/me/meService';
+import { updateProfile, changePassword } from '../services/auth/authService';
 import type { SavedArticle, ReadHistory } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 
