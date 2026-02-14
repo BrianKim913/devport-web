@@ -2,6 +2,11 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import './index.css'
+import { registerAuthInterceptors } from './lib/http/authRefresh'
+
+// Register auth interceptors (token attach + refresh/retry) on the shared HTTP client.
+// Must be called before any API requests are made.
+registerAuthInterceptors();
 import { AuthProvider } from './contexts/AuthContext'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'

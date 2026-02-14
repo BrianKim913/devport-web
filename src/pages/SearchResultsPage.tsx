@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import ArticleCard from '../components/ArticleCard';
-import { searchFulltext } from '../services/api';
+import { searchFulltext } from '../services/search/searchService';
 import type { Article } from '../types';
 
 export default function SearchResultsPage() {

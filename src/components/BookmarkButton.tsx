@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { saveArticle, unsaveArticle, isArticleSaved } from '../services/api';
+import { saveArticle, unsaveArticle, isArticleSaved } from '../services/me/meService';
 import { useNavigate } from 'react-router-dom';
 
 interface BookmarkButtonProps {

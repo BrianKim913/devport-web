@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Turnstile } from '@marsidev/react-turnstile';
-import { signup, checkUsernameAvailability, checkEmailAvailability } from '../services/api';
+import { signup, checkUsernameAvailability, checkEmailAvailability } from '../services/auth/authService';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function SignupPage() {

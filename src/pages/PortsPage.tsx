@@ -21,7 +21,7 @@ import {
   getProjectStarHistory,
   getProjectOverview,
   getProjectComments,
-} from '../services/api';
+} from '../services/ports/portsService';
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
 import CommentItem from '../components/CommentItem';
