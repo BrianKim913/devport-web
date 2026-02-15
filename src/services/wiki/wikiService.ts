@@ -34,6 +34,27 @@ export async function getWikiSnapshot(projectExternalId: string): Promise<WikiSn
 }
 
 /**
+ * Get list of wiki domains for discovery.
+ * Returns domain names with project counts.
+ *
+ * @returns Domain list with project counts
+ */
+export async function getWikiDomains(): Promise<unknown[]> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/wiki/domains`);
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch domains: ${response.status} ${response.statusText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Wiki domains fetch error:', error);
+    throw error;
+  }
+}
+
+/**
  * Get domain browse cards for wiki discovery.
  * Returns list of domains with top projects per domain.
  *
@@ -50,6 +71,32 @@ export async function getDomainBrowseCards(): Promise<unknown[]> {
     return await response.json();
   } catch (error) {
     console.error('Domain browse cards fetch error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get wiki project information by external ID.
+ * Returns project metadata and domain categorization.
+ *
+ * @param projectExternalId GitHub project external ID
+ * @returns Project information
+ */
+export async function getWikiProject(projectExternalId: string): Promise<unknown | null> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/wiki/projects/${encodeURIComponent(projectExternalId)}`);
+    
+    if (response.status === 404) {
+      return null;
+    }
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch wiki project: ${response.status} ${response.statusText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Wiki project fetch error:', error);
     throw error;
   }
 }
