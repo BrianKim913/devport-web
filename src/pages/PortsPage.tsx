@@ -5,14 +5,17 @@ import {
 } from 'recharts';
 import type {
   Port,
-  Project,
+  ProjectSummary,
+  ProjectDetail,
   ProjectEvent,
   EventType,
+  HotRelease,
   PortDetailResponse,
   StarHistoryPoint,
   ProjectOverview,
   ProjectCommentTreeNode,
 } from '../types';
+import type { WikiSnapshot } from '../types/wiki';
 import {
   getPorts,
   getPortBySlug,
@@ -22,6 +25,7 @@ import {
   getProjectOverview,
   getProjectComments,
 } from '../services/ports/portsService';
+import { getWikiSnapshot } from '../services/wiki/wikiService';
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
 import CommentItem from '../components/CommentItem';
@@ -49,6 +53,15 @@ function ago(s: string) {
   return `${d}일 전`;
 }
 
+function parseLinks(linksStr: string | undefined | null): { label: string; url: string }[] {
+  if (!linksStr) return [];
+  try {
+    return JSON.parse(linksStr);
+  } catch {
+    return [];
+  }
+}
+
 function buildCommentTree(comments: any[]): ProjectCommentTreeNode[] {
   const map = new Map<string, ProjectCommentTreeNode>();
   const roots: ProjectCommentTreeNode[] = [];
@@ -74,10 +87,13 @@ function buildCommentTree(comments: any[]): ProjectCommentTreeNode[] {
 
 // ─── Views ───────────────────────────────────────────────────
 
+type ProjectTab = 'overview' | 'activity' | 'wiki' | 'comments';
+
 export default function PortsPage() {
   const { portNumber, projectExternalId } = useParams<{ portNumber?: string; projectExternalId?: string }>();
   const navigate = useNavigate();
   const [eventFilter, setEventFilter] = useState<EventType | 'all'>('all');
+  const [activeTab, setActiveTab] = useState<ProjectTab>('overview');
 
   // Directory data
   const [ports, setPorts] = useState<Port[]>([]);
@@ -88,7 +104,7 @@ export default function PortsPage() {
   const [portLoading, setPortLoading] = useState(false);
 
   // Project detail data
-  const [projectData, setProjectData] = useState<Project | null>(null);
+  const [projectData, setProjectData] = useState<ProjectDetail | null>(null);
   const [projectLoading, setProjectLoading] = useState(false);
   const [projectOverview, setProjectOverview] = useState<ProjectOverview | null>(null);
   const [starHistory, setStarHistory] = useState<StarHistoryPoint[]>([]);
@@ -96,6 +112,10 @@ export default function PortsPage() {
   const [eventsLoading, setEventsLoading] = useState(false);
   const [comments, setComments] = useState<ProjectCommentTreeNode[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
+
+  // Wiki data
+  const [wikiSnapshot, setWikiSnapshot] = useState<WikiSnapshot | null>(null);
+  const [wikiLoading, setWikiLoading] = useState(false);
 
   // Determine current view from URL params
   const viewType = projectExternalId ? 'project' : portNumber ? 'port' : 'directory';
@@ -122,45 +142,39 @@ export default function PortsPage() {
     }
   }, [currentPort]);
 
+  // Find matched project summary from port detail
+  const matchedSummary: ProjectSummary | undefined = useMemo(() => {
+    if (viewType !== 'project' || !projectExternalId || !portDetail) return undefined;
+    return portDetail.projects.find(
+      p => p.id === projectExternalId || p.name === projectExternalId
+    );
+  }, [viewType, projectExternalId, portDetail]);
+
   // Load project detail by external_id
   useEffect(() => {
-    if (viewType === 'project' && projectExternalId && portDetail) {
-      // Find project by external_id or name from port's projects
-      const matched = portDetail.projects.find(
-        p => p.externalId === projectExternalId || p.name === projectExternalId
-      );
+    if (viewType === 'project' && matchedSummary) {
+      const projectId = matchedSummary.id;
 
-      if (!matched) {
-        console.error('Project not found:', projectExternalId);
-        return;
-      }
-
-      const key = matched.externalId || matched.name;
-
-      // Load project basic info
+      // Load project detail
       setProjectLoading(true);
-      getProjectById(key as any)
-        .then(resp => {
-          // Backend returns Project directly (not wrapped)
-          const proj: Project = (resp as any).project || (resp as any);
-          setProjectData(proj);
-        })
+      getProjectById(projectId)
+        .then(setProjectData)
         .catch(err => console.error('Failed to load project:', err))
         .finally(() => setProjectLoading(false));
 
       // Load star history
-      getProjectStarHistory(key as any)
+      getProjectStarHistory(projectId)
         .then(setStarHistory)
         .catch(() => setStarHistory([]));
 
       // Load overview
-      getProjectOverview(key as any)
+      getProjectOverview(projectId)
         .then(setProjectOverview)
         .catch(() => setProjectOverview(null));
 
       // Load events
       setEventsLoading(true);
-      getProjectEvents(key as any, undefined, 0, 50)
+      getProjectEvents(projectId, undefined, 0, 50)
         .then(eventsResp => {
           // Handle both paginated { content: [...] } and direct array response
           const events = Array.isArray(eventsResp) ? eventsResp : eventsResp.content;
@@ -171,12 +185,22 @@ export default function PortsPage() {
 
       // Load comments
       setCommentsLoading(true);
-      getProjectComments(key as any)
+      getProjectComments(projectId)
         .then(commentsData => setComments(buildCommentTree(commentsData)))
         .catch(() => setComments([]))
         .finally(() => setCommentsLoading(false));
+
+      // Load wiki snapshot
+      setWikiLoading(true);
+      getWikiSnapshot(projectExternalId!)
+        .then(wiki => setWikiSnapshot(wiki))
+        .catch(err => {
+          console.error('Failed to load wiki:', err);
+          setWikiSnapshot(null);
+        })
+        .finally(() => setWikiLoading(false));
     }
-  }, [viewType, projectExternalId, portDetail]);
+  }, [viewType, matchedSummary, projectExternalId]);
 
   const filteredEvents = useMemo(() => {
     if (eventFilter === 'all') return projectEvents;
@@ -188,8 +212,8 @@ export default function PortsPage() {
     setEventFilter('all');
   };
 
-  const goProject = (proj: Project, portNum: number) => {
-    navigate(`/ports/${portNum}/${proj.externalId || proj.name}`);
+  const goProject = (proj: ProjectSummary, portNum: number) => {
+    navigate(`/ports/${portNum}/${proj.id}`);
     setEventFilter('all');
   };
 
@@ -199,12 +223,16 @@ export default function PortsPage() {
 
   const port = portDetail?.port || null;
   const project = projectData;
+  const summary = matchedSummary;
   const overview = projectOverview;
   const portProjects = portDetail?.projects || [];
   const hotReleases = portDetail?.hotReleases || [];
 
   // Find port for current project (fallback to currentPort from URL)
-  const projectPort = (project && ports.find(p => p.id === project.portId)) || currentPort || null;
+  const projectPort = currentPort || null;
+
+  // Parse overview links (backend sends JSON string)
+  const overviewLinks = useMemo(() => parseLinks(overview?.links), [overview?.links]);
 
   return (
     <div className="min-h-screen bg-glow">
@@ -281,9 +309,9 @@ export default function PortsPage() {
                       <div className="text-lg font-semibold text-text-primary">{fmt(project.stars)}</div>
                       <div className="text-2xs text-text-muted">total stars</div>
                     </div>
-                    {project.starsWeekDelta != null && (
+                    {summary?.starsWeekDelta != null && summary.starsWeekDelta > 0 && (
                       <div className="text-right">
-                        <div className="text-sm font-medium text-emerald-400">+{fmt(project.starsWeekDelta)}</div>
+                        <div className="text-sm font-medium text-emerald-400">+{fmt(summary.starsWeekDelta)}</div>
                         <div className="text-2xs text-text-muted">this week</div>
                       </div>
                     )}
@@ -296,7 +324,7 @@ export default function PortsPage() {
                 {[
                   project.contributors != null && { label: 'Contributors', value: String(project.contributors) },
                   project.forks != null && { label: 'Forks', value: fmt(project.forks) },
-                  project.releasesLast30d != null && { label: 'Releases / 30d', value: String(project.releasesLast30d) },
+                  summary?.releases30d != null && { label: 'Releases / 30d', value: String(summary.releases30d) },
                   project.lastRelease && { label: 'Last release', value: ago(project.lastRelease) },
                 ].filter((s): s is { label: string; value: string } => !!s).map(s => (
                   <div key={s.label} className="flex items-center justify-between px-4 py-2.5">
@@ -337,13 +365,17 @@ export default function PortsPage() {
                       <svg className="w-3.5 h-3.5 text-amber-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
                       {fmt(project.stars)}
                     </span>
-                    <span className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-surface-border text-xs text-text-muted">
-                      <span className="w-2 h-2 rounded-full" style={{ background: project.languageColor }} />
-                      {project.language}
-                    </span>
-                    <span className="px-2.5 py-1.5 rounded-lg border border-surface-border text-xs text-text-muted">
-                      {project.license}
-                    </span>
+                    {project.language && (
+                      <span className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-surface-border text-xs text-text-muted">
+                        <span className="w-2 h-2 rounded-full" style={{ background: project.languageColor }} />
+                        {project.language}
+                      </span>
+                    )}
+                    {project.license && (
+                      <span className="px-2.5 py-1.5 rounded-lg border border-surface-border text-xs text-text-muted">
+                        {project.license}
+                      </span>
+                    )}
                     <a
                       href={project.repoUrl}
                       target="_blank"
@@ -356,8 +388,62 @@ export default function PortsPage() {
                   </div>
                 </div>
 
-                {/* Overview card */}
-                {overview && (
+                {/* Tab Navigation */}
+                <div className="flex gap-1 mb-6 border-b border-surface-border">
+                  <button
+                    onClick={() => setActiveTab('overview')}
+                    className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 ${
+                      activeTab === 'overview'
+                        ? 'text-accent border-accent'
+                        : 'text-text-muted border-transparent hover:text-text-secondary'
+                    }`}
+                  >
+                    개요
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('activity')}
+                    className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 ${
+                      activeTab === 'activity'
+                        ? 'text-accent border-accent'
+                        : 'text-text-muted border-transparent hover:text-text-secondary'
+                    }`}
+                  >
+                    활동
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('wiki')}
+                    className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 ${
+                      activeTab === 'wiki'
+                        ? 'text-accent border-accent'
+                        : 'text-text-muted border-transparent hover:text-text-secondary'
+                    }`}
+                  >
+                    Wiki
+                    {wikiSnapshot && (
+                      <span className="ml-1.5 px-1.5 py-0.5 text-2xs bg-accent/10 text-accent rounded">
+                        AI
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('comments')}
+                    className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 ${
+                      activeTab === 'comments'
+                        ? 'text-accent border-accent'
+                        : 'text-text-muted border-transparent hover:text-text-secondary'
+                    }`}
+                  >
+                    댓글
+                    {comments.length > 0 && (
+                      <span className="ml-1.5 px-1.5 py-0.5 text-2xs bg-surface-elevated text-text-muted rounded">
+                        {comments.length}
+                      </span>
+                    )}
+                  </button>
+                </div>
+
+                {/* Tab Content - Overview */}
+                {activeTab === 'overview' && overview && (
                   <div className="bg-surface-card rounded-xl border border-surface-border mb-6 overflow-hidden">
                     <div className="flex items-center justify-between px-5 py-3 border-b border-surface-border">
                       <div className="flex items-center gap-2">
@@ -365,16 +451,18 @@ export default function PortsPage() {
                         <h2 className="text-sm font-medium text-text-secondary">개요</h2>
                       </div>
                       <div className="flex items-center gap-3 text-2xs text-text-muted">
-                        {overview.updatedAt && <span>업데이트: {overview.updatedAt.split('T')[0]}</span>}
-                        <a
-                          href={overview.sourceUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-accent hover:text-accent-light transition-colors flex items-center gap-1"
-                        >
-                          원문
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-                        </a>
+                        {overview.summarizedAt && <span>업데이트: {overview.summarizedAt.split('T')[0]}</span>}
+                        {overview.sourceUrl && (
+                          <a
+                            href={overview.sourceUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-accent hover:text-accent-light transition-colors flex items-center gap-1"
+                          >
+                            원문
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                          </a>
+                        )}
                       </div>
                     </div>
 
@@ -396,9 +484,9 @@ export default function PortsPage() {
                         </pre>
                       )}
 
-                      {Array.isArray(overview.links) && overview.links.length > 0 && (
+                      {overviewLinks.length > 0 && (
                         <div className="flex flex-wrap gap-2">
-                          {overview.links.map((link) => (
+                          {overviewLinks.map((link) => (
                             <a
                               key={link.label}
                               href={link.url}
@@ -420,7 +508,9 @@ export default function PortsPage() {
                   </div>
                 )}
 
-                {/* Release timeline */}
+                {/* Tab Content - Activity (Release timeline) */}
+                {activeTab === 'activity' && (
+                <>
                 <div className="bg-surface-card rounded-xl border border-surface-border p-5 mb-6">
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-sm font-medium text-text-secondary">릴리스</h2>
@@ -487,7 +577,9 @@ export default function PortsPage() {
                             </ul>
 
                             <div className="flex items-center gap-3 text-2xs text-text-muted">
-                              <a href={ev.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-accent hover:text-accent-light transition-colors">릴리스 노트</a>
+                              {ev.sourceUrl && (
+                                <a href={ev.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-accent hover:text-accent-light transition-colors">릴리스 노트</a>
+                              )}
                             </div>
                           </div>
                         );
@@ -499,8 +591,73 @@ export default function PortsPage() {
                 <div className="text-center mb-8">
                   <span className="text-2xs text-text-muted">릴리스 요약은 LLM으로 생성 · 원문 확인 필수</span>
                 </div>
+                </>
+                )}
 
-                {/* Discussion Section */}
+                {/* Tab Content - Wiki */}
+                {activeTab === 'wiki' && (
+                  <div className="space-y-6">
+                    {wikiLoading ? (
+                      <div className="text-center py-12 text-text-muted">Loading wiki...</div>
+                    ) : !wikiSnapshot ? (
+                      <div className="bg-surface-card rounded-xl border border-surface-border p-8 text-center">
+                        <p className="text-sm text-text-muted mb-2">Wiki not available for this project</p>
+                        <p className="text-xs text-text-muted">Check back later as we generate technical documentation</p>
+                      </div>
+                    ) : (
+                      <>
+                        {/* What Section */}
+                        {wikiSnapshot.what && (
+                          <div className="bg-surface-card rounded-xl border border-surface-border p-6">
+                            <h2 className="text-base font-semibold text-text-primary mb-3">What is this project?</h2>
+                            <p className="text-sm text-text-secondary mb-4">{wikiSnapshot.what.summary}</p>
+                            {wikiSnapshot.what.deepDiveMarkdown && (
+                              <div 
+                                className="text-sm text-text-secondary prose prose-sm prose-invert max-w-none"
+                                dangerouslySetInnerHTML={{ __html: wikiSnapshot.what.deepDiveMarkdown.replace(/\n/g, '<br/>') }}
+                              />
+                            )}
+                          </div>
+                        )}
+
+                        {/* How Section */}
+                        {wikiSnapshot.how && (
+                          <div className="bg-surface-card rounded-xl border border-surface-border p-6">
+                            <h2 className="text-base font-semibold text-text-primary mb-3">How it works</h2>
+                            <p className="text-sm text-text-secondary mb-4">{wikiSnapshot.how.summary}</p>
+                            {wikiSnapshot.how.deepDiveMarkdown && (
+                              <div 
+                                className="text-sm text-text-secondary prose prose-sm prose-invert max-w-none"
+                                dangerouslySetInnerHTML={{ __html: wikiSnapshot.how.deepDiveMarkdown.replace(/\n/g, '<br/>') }}
+                              />
+                            )}
+                          </div>
+                        )}
+
+                        {/* Architecture Section */}
+                        {wikiSnapshot.architecture && (
+                          <div className="bg-surface-card rounded-xl border border-surface-border p-6">
+                            <h2 className="text-base font-semibold text-text-primary mb-3">Architecture</h2>
+                            <p className="text-sm text-text-secondary mb-4">{wikiSnapshot.architecture.summary}</p>
+                            {wikiSnapshot.architecture.deepDiveMarkdown && (
+                              <div 
+                                className="text-sm text-text-secondary prose prose-sm prose-invert max-w-none"
+                                dangerouslySetInnerHTML={{ __html: wikiSnapshot.architecture.deepDiveMarkdown.replace(/\n/g, '<br/>') }}
+                              />
+                            )}
+                          </div>
+                        )}
+
+                        <div className="text-center py-4">
+                          <span className="text-2xs text-text-muted">AI-generated technical documentation · Verify with official sources</span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {/* Tab Content - Comments (Discussion Section) */}
+                {activeTab === 'comments' && (
                 <div className="space-y-4">
                   <div className="flex items-center gap-2.5">
                     <svg className="w-4 h-4 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.076-4.076a1.526 1.526 0 011.037-.443 48.282 48.282 0 005.68-.494c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" /></svg>
@@ -538,6 +695,7 @@ export default function PortsPage() {
                     </>
                   )}
                 </div>
+                )}
               </>
             )}
           </div>
@@ -588,14 +746,14 @@ export default function PortsPage() {
                           <div className="text-2xs">프로젝트</div>
                         </div>
                         <div className="text-right">
-                          <div className="text-text-secondary font-medium">{p.recentReleases}</div>
+                          <div className="text-text-secondary font-medium">{p.recentReleaseCount}</div>
                           <div className="text-2xs">릴리스/30d</div>
                         </div>
                         <div className="w-16">
                           <div className="h-1.5 rounded-full bg-surface-border overflow-hidden">
                             <div
                               className="h-full rounded-full"
-                              style={{ width: `${Math.min(100, (p.recentReleases / 35) * 100)}%`, background: p.accentColor }}
+                              style={{ width: `${Math.min(100, (p.recentReleaseCount / 35) * 100)}%`, background: p.accentColor }}
                             />
                           </div>
                         </div>
@@ -635,7 +793,7 @@ export default function PortsPage() {
                       </div>
 
                       <div className="bg-surface-card rounded-xl border border-surface-border overflow-hidden divide-y divide-surface-border">
-                        {portProjects.sort((a, b) => b.releasesLast30d - a.releasesLast30d).map((p, i) => (
+                        {[...portProjects].sort((a, b) => b.releases30d - a.releases30d).map((p, i) => (
                           <button
                             key={p.id}
                             onClick={() => goProject(p, port.portNumber)}
@@ -650,12 +808,13 @@ export default function PortsPage() {
                                 <span className="text-sm font-medium text-text-primary group-hover:text-accent-light transition-colors truncate">
                                   {p.fullName}
                                 </span>
-                                <span className="flex items-center gap-1 shrink-0">
-                                  <span className="w-2 h-2 rounded-full" style={{ background: p.languageColor }} />
-                                  <span className="text-2xs text-text-muted">{p.language}</span>
-                                </span>
+                                {p.language && (
+                                  <span className="flex items-center gap-1 shrink-0">
+                                    <span className="w-2 h-2 rounded-full" style={{ background: p.languageColor }} />
+                                    <span className="text-2xs text-text-muted">{p.language}</span>
+                                  </span>
+                                )}
                               </div>
-                              <p className="text-xs text-text-muted truncate">{p.description}</p>
                             </div>
 
                             <div className="hidden sm:flex items-center gap-3 shrink-0">
@@ -698,7 +857,7 @@ export default function PortsPage() {
 
                       <div className="space-y-2">
                         {hotReleases.map((ev) => {
-                          const proj = portProjects.find(p => p.id === ev.projectId);
+                          const proj = portProjects.find(p => p.name === ev.projectName);
                           return (
                             <div
                               key={ev.id}
@@ -706,7 +865,7 @@ export default function PortsPage() {
                               className="bg-surface-card rounded-xl border border-surface-border p-4 hover:bg-surface-hover/50 transition-colors cursor-pointer"
                             >
                               <div className="flex items-center gap-2 mb-1.5">
-                                <span className="text-xs font-medium text-text-secondary">{proj?.name}</span>
+                                <span className="text-xs font-medium text-text-secondary">{ev.projectName}</span>
                                 <span className="text-xs font-mono text-text-muted">{ev.version}</span>
                                 <span className="text-2xs text-text-muted ml-auto">{ago(ev.releasedAt)}</span>
                               </div>
