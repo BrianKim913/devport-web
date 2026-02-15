@@ -26,27 +26,27 @@ export interface WikiSnapshot {
   /** Snapshot generation timestamp */
   generatedAt: string;
 
-  // Core-6 sections
+  // Core-6 sections (optional - may be missing if data not ready)
   /** What this project is - purpose, domain, users */
-  what: WikiSection;
+  what?: WikiSection;
   /** How it works - key concepts, workflows, usage */
-  how: WikiSection;
+  how?: WikiSection;
   /** Architecture and codebase - structure, components, design */
-  architecture: WikiSection;
+  architecture?: WikiSection;
   /** Repository activity - 12-month event history */
-  activity: WikiSection;
+  activity?: WikiSection;
   /** Releases and tags - timeline with narrative */
-  releases: WikiSection;
+  releases?: WikiSection;
   /** Chat module payload - repo context for Q&A */
-  chat: WikiSection;
+  chat?: WikiSection;
 
   // Readiness and hiding controls
   /** Whether this project meets minimum data quality thresholds */
   isDataReady: boolean;
   /** Section names to hide due to incomplete data */
-  hiddenSections: string[];
+  hiddenSections?: string[];
   /** Detailed readiness scoring and gate results */
-  readinessMetadata: Record<string, unknown>;
+  readinessMetadata?: Record<string, unknown>;
 }
 
 /**
