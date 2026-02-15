@@ -23,10 +23,15 @@ export default function WikiRightRail({ snapshot, projectExternalId }: WikiRight
         <div className="bg-surface-card rounded-xl border border-surface-border p-4">
           <h3 className="text-sm font-medium text-text-secondary mb-3 flex items-center gap-2">
             <span>📊</span>
-            <span>Activity</span>
+            <span>Repository Activity</span>
           </h3>
-          <div className="space-y-2">
-            <p className="text-xs text-text-muted">{snapshot.activity.summary}</p>
+          <div className="space-y-3">
+            <p className="text-xs text-text-muted leading-relaxed">{snapshot.activity.summary}</p>
+            {snapshot.activity.deepDiveMarkdown && (
+              <div className="text-2xs text-text-muted/80 border-t border-surface-border/50 pt-2">
+                <p className="line-clamp-2">{snapshot.activity.deepDiveMarkdown.slice(0, 120)}...</p>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -36,10 +41,15 @@ export default function WikiRightRail({ snapshot, projectExternalId }: WikiRight
         <div className="bg-surface-card rounded-xl border border-surface-border p-4">
           <h3 className="text-sm font-medium text-text-secondary mb-3 flex items-center gap-2">
             <span>🚀</span>
-            <span>Releases</span>
+            <span>Recent Releases</span>
           </h3>
-          <div className="space-y-2">
-            <p className="text-xs text-text-muted">{snapshot.releases.summary}</p>
+          <div className="space-y-3">
+            <p className="text-xs text-text-muted leading-relaxed">{snapshot.releases.summary}</p>
+            {snapshot.releases.deepDiveMarkdown && (
+              <div className="text-2xs text-text-muted/80 border-t border-surface-border/50 pt-2">
+                <p className="line-clamp-3">{snapshot.releases.deepDiveMarkdown.slice(0, 150)}...</p>
+              </div>
+            )}
           </div>
         </div>
       )}
