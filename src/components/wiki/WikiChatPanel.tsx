@@ -38,7 +38,7 @@ export default function WikiChatPanel({ projectExternalId }: WikiChatPanelProps)
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/wiki/chat`, {
+      const response = await fetch(`${API_BASE_URL}/api/wiki/projects/${encodeURIComponent(projectExternalId)}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
