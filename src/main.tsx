@@ -20,7 +20,6 @@ import MyPage from './pages/MyPage'
 import AdminPage from './pages/AdminPage'
 import SearchResultsPage from './pages/SearchResultsPage'
 import PortsPage from './pages/PortsPage'
-import WikiPage from './pages/WikiPage'
 import WikiDraftsPage from './pages/wiki-admin/WikiDraftsPage'
 import ProtectedAdminRoute from './components/ProtectedAdminRoute'
 
@@ -43,9 +42,6 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/ports" element={<PortsPage />} />
           <Route path="/ports/:portNumber" element={<PortsPage />} />
           <Route path="/ports/:portNumber/:projectExternalId" element={<PortsPage />} />
-          <Route path="/wiki" element={<WikiPage />} />
-          <Route path="/wiki/:domain" element={<WikiPage />} />
-          <Route path="/wiki/:domain/:projectExternalId" element={<WikiPage />} />
           <Route
             path="/admin"
             element={

@@ -56,29 +56,48 @@ const navItems = [
   },
 ];
 
-export default function Sidebar() {
+interface SidebarProps {
+  compact?: boolean;
+}
+
+export default function Sidebar({ compact = false }: SidebarProps) {
   const location = useLocation();
   const { isAuthenticated } = useAuth();
+  const sidebarCompact = compact;
+  const sidebarClasses = sidebarCompact ? 'w-14 group hover:w-52' : 'w-52';
+  const sidebarPadding = sidebarCompact ? 'px-2' : 'px-4';
+
+  const linkLabelClasses = sidebarCompact
+    ? 'inline-flex whitespace-nowrap overflow-hidden max-w-0 opacity-0 ml-0 transition-all duration-200 group-hover:max-w-40 group-hover:opacity-100 group-hover:ml-3'
+    : '';
+  const iconClasses = 'shrink-0';
 
   return (
-    <aside className="w-52 h-full py-6 px-4 border-r border-surface-border/30 bg-surface">
+    <aside
+      className={`${sidebarClasses} ${sidebarPadding} h-full py-6 border-r border-surface-border/30 bg-surface transition-[width] duration-200 ease-in-out`}
+    >
       <nav className="flex flex-col gap-1">
         {navItems.map((item) => {
           const isActive = location.pathname === item.path;
           const linkPath = item.authPath && !isAuthenticated ? item.authPath : item.path;
+          const linkPadding = sidebarCompact ? 'px-2' : 'px-3';
+          const linkGap = sidebarCompact ? 'gap-0' : 'gap-3';
+          const compactState = sidebarCompact ? 'justify-center group-hover:justify-start group-hover:gap-2' : 'justify-start';
 
           return (
             <Link
               key={item.id}
               to={linkPath}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                isActive
-                  ? 'bg-accent/10 text-accent'
-                  : 'text-text-muted hover:text-text-secondary hover:bg-surface-card/50'
-              }`}
+              className={`flex items-center ${linkGap} ${linkPadding} py-2.5 rounded-lg text-sm font-medium transition-all ${
+                compactState
+              } ${
+                  isActive
+                    ? 'bg-accent/10 text-accent'
+                    : 'text-text-muted hover:text-text-secondary hover:bg-surface-card/50'
+                }`}
             >
-              {item.icon}
-              <span>{item.label}</span>
+              <span className={iconClasses}>{item.icon}</span>
+              <span className={linkLabelClasses}>{item.label}</span>
             </Link>
           );
         })}

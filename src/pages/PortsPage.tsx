@@ -9,9 +9,7 @@ import type {
   ProjectDetail,
   ProjectEvent,
   EventType,
-  HotRelease,
   PortDetailResponse,
-  ProjectOverview,
   ProjectCommentTreeNode,
 } from '../types';
 import type { WikiSnapshot } from '../types/wiki';
@@ -20,7 +18,6 @@ import {
   getPortBySlug,
   getProjectById,
   getProjectEvents,
-  getProjectOverview,
   getProjectComments,
 } from '../services/ports/portsService';
 import { getWikiSnapshot } from '../services/wiki/wikiService';
@@ -28,7 +25,7 @@ import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
 import CommentItem from '../components/CommentItem';
 import WikiChatPanel from '../components/wiki/WikiChatPanel';
-import ReactMarkdown from 'react-markdown';
+import WikiMarkdownRenderer, { MermaidCodeBlock } from '../components/wiki/WikiMarkdownRenderer';
 
 // ─── Helpers ─────────────────────────────────────────────────
 
@@ -41,6 +38,40 @@ const EVENT_TYPE: Record<EventType, { label: string; cls: string; dot: string }>
   MISC:     { label: 'Misc',     cls: 'bg-gray-500/10 text-gray-400 border-gray-500/20',         dot: '#6b7280' },
 };
 
+interface TocSubsection {
+  id: string;
+  label: string;
+  level: number;
+}
+
+interface TocSectionItem {
+  id: string;
+  label: string;
+  children?: TocSubsection[];
+}
+
+function cleanChildLabel(parentLabel: string, childLabel: string): string {
+  const trimmedParent = parentLabel.trim();
+  let label = childLabel.trim();
+
+  if (!trimmedParent) return label;
+
+  const escapedParent = trimmedParent.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const prefixes = [
+    new RegExp(`^${escapedParent}\\s*[:\\-–—>→]\\s*`, 'i'),
+    new RegExp(`^${escapedParent}\\s*/\\s*`, 'i'),
+    new RegExp(`^${escapedParent}\\s*\\|\\s*`, 'i'),
+    new RegExp(`^${escapedParent}\\s*\\s`, 'i'),
+  ];
+
+  for (const prefixRegex of prefixes) {
+    label = label.replace(prefixRegex, '');
+    if (label !== childLabel.trim()) break;
+  }
+
+  return label.trim() || childLabel.trim();
+}
+
 function fmt(n: number) {
   if (n >= 1000) return (n / 1000).toFixed(n >= 100000 ? 0 : 1) + 'k';
   return String(n);
@@ -51,15 +82,6 @@ function ago(s: string) {
   if (d === 0) return '오늘';
   if (d === 1) return '어제';
   return `${d}일 전`;
-}
-
-function parseLinks(linksStr: string | undefined | null): { label: string; url: string }[] {
-  if (!linksStr) return [];
-  try {
-    return JSON.parse(linksStr);
-  } catch {
-    return [];
-  }
 }
 
 function buildCommentTree(comments: any[]): ProjectCommentTreeNode[] {
@@ -104,7 +126,6 @@ export default function PortsPage() {
   // Project detail data
   const [projectData, setProjectData] = useState<ProjectDetail | null>(null);
   const [projectLoading, setProjectLoading] = useState(false);
-  const [projectOverview, setProjectOverview] = useState<ProjectOverview | null>(null);
   const [projectEvents, setProjectEvents] = useState<ProjectEvent[]>([]);
   const [eventsLoading, setEventsLoading] = useState(false);
   const [comments, setComments] = useState<ProjectCommentTreeNode[]>([]);
@@ -113,6 +134,8 @@ export default function PortsPage() {
   // Wiki data
   const [wikiSnapshot, setWikiSnapshot] = useState<WikiSnapshot | null>(null);
   const [wikiLoading, setWikiLoading] = useState(false);
+  const [expandedTocSections, setExpandedTocSections] = useState<Set<string>>(new Set());
+  const [tocSections, setTocSections] = useState<TocSectionItem[]>([]);
 
   // Determine current view from URL params
   const viewType = projectExternalId ? 'project' : portNumber ? 'port' : 'directory';
@@ -159,11 +182,6 @@ export default function PortsPage() {
         .catch(err => console.error('Failed to load project:', err))
         .finally(() => setProjectLoading(false));
 
-      // Load overview
-      getProjectOverview(projectId)
-        .then(setProjectOverview)
-        .catch(() => setProjectOverview(null));
-
       // Load events
       setEventsLoading(true);
       getProjectEvents(projectId, undefined, 0, 50)
@@ -206,23 +224,129 @@ export default function PortsPage() {
     return wikiSnapshot.sections.filter(s => !hidden.includes(s.sectionId));
   }, [wikiSnapshot]);
 
+  const wikiGeneratedLabel = useMemo(() => {
+    if (!wikiSnapshot?.generatedAt) return null;
+    return new Date(wikiSnapshot.generatedAt).toLocaleString('ko-KR');
+  }, [wikiSnapshot?.generatedAt]);
+
   // All TOC sections (wiki + activity + comments)
-  const tocSections = useMemo(() => {
-    const sections: { id: string; label: string }[] = [];
-    for (const ws of visibleWikiSections) {
-      sections.push({ id: `wiki-${ws.sectionId}`, label: ws.heading });
-    }
-    sections.push({ id: 'activity', label: '활동' });
-    sections.push({ id: 'comments', label: '댓글' });
-    return sections;
+  useEffect(() => {
+    const buildSections = () => {
+      setExpandedTocSections(new Set());
+      const sections: TocSectionItem[] = [];
+
+      for (const ws of visibleWikiSections) {
+        const sectionId = `wiki-${ws.sectionId}`;
+        const sectionEl = document.getElementById(sectionId);
+        const children: TocSubsection[] = [];
+        const seenHeadingIds = new Set<string>();
+
+        if (sectionEl) {
+          const headingEls = Array.from(sectionEl.querySelectorAll<HTMLElement>('h1, h2, h3, h4, h5, h6'));
+          for (const headingEl of headingEls) {
+            const id = headingEl.getAttribute('id');
+            const label = (headingEl.textContent || '').trim();
+            if (!id || !label) continue;
+            if (!id.startsWith(`${sectionId}-`)) continue;
+            const normalizedLabel = cleanChildLabel(ws.heading, label);
+            if (!normalizedLabel || normalizedLabel === ws.heading) continue;
+            if (normalizedLabel === ws.heading.trim()) continue;
+            if (seenHeadingIds.has(id)) continue;
+
+            const level = Number(headingEl.tagName.slice(1)) || 2;
+            children.push({ id, label: normalizedLabel, level });
+            seenHeadingIds.add(id);
+          }
+        }
+
+        sections.push({
+          id: sectionId,
+          label: ws.heading,
+          ...(children.length ? { children } : {}),
+        });
+      }
+
+      sections.push({ id: 'activity', label: '활동' });
+      sections.push({ id: 'comments', label: '댓글' });
+      setTocSections(sections);
+    };
+
+    const raf = requestAnimationFrame(buildSections);
+    const fallback = window.setTimeout(buildSections, 250);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      window.clearTimeout(fallback);
+    };
   }, [visibleWikiSections]);
+
+  const tocAnchorIds = useMemo(() => {
+    const ids: string[] = [];
+    for (const section of tocSections) {
+      ids.push(section.id);
+      if (section.children?.length) {
+        for (const child of section.children) {
+          ids.push(child.id);
+        }
+      }
+    }
+    return ids;
+  }, [tocSections]);
+
+  const expandTocSection = (sectionId: string) => {
+    setExpandedTocSections((prev) => {
+      if (prev.has(sectionId)) return prev;
+      const next = new Set(prev);
+      next.add(sectionId);
+      return next;
+    });
+  };
+
+  const scrollToTocAnchor = (anchorId: string) => {
+    const target =
+      document.getElementById(anchorId)
+      || document.querySelector<HTMLElement>(`[name="${CSS.escape ? CSS.escape(anchorId) : anchorId}"]`);
+
+    if (!target) return;
+
+    const destination = Math.max(0, target.getBoundingClientRect().top + window.pageYOffset - 88);
+    const currentScrollY = window.pageYOffset;
+
+    window.scrollTo({
+      top: destination,
+      behavior: 'smooth',
+    });
+    window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}#${anchorId}`);
+    setTimeout(() => {
+      if (Math.abs(window.pageYOffset - destination) <= 2) return;
+      if (Math.abs(window.pageYOffset - currentScrollY) <= 2) return;
+      window.scrollTo({
+        top: destination,
+        behavior: 'smooth',
+      });
+    }, 220);
+  };
+
+  useEffect(() => {
+    const activeParent = tocSections.find((section) =>
+      (section.children || []).some((child) => child.id === activeSection)
+    );
+    if (activeParent) {
+      setExpandedTocSections((prev) => {
+        if (prev.has(activeParent.id)) return prev;
+        const next = new Set(prev);
+        next.add(activeParent.id);
+        return next;
+      });
+    }
+  }, [activeSection, tocSections]);
 
   // IntersectionObserver for active section
   useEffect(() => {
     if (tocSections.length === 0) return;
     
-    const elements = tocSections
-      .map((section) => document.getElementById(section.id))
+    const elements = tocAnchorIds
+      .map((id) => document.getElementById(id))
       .filter((element): element is HTMLElement => Boolean(element));
 
     if (elements.length === 0) return;
@@ -239,7 +363,7 @@ export default function PortsPage() {
 
     elements.forEach((element) => observer.observe(element));
     return () => observer.disconnect();
-  }, [tocSections]);
+  }, [tocAnchorIds]);
 
   const goPort = (portNum: number) => {
     navigate(`/ports/${portNum}`);
@@ -251,22 +375,18 @@ export default function PortsPage() {
     setEventFilter('all');
   };
 
-  const goDir = () => navigate('/ports');
-
   // ─── Render ────────────────────────────────────────────────
 
   const port = portDetail?.port || null;
   const project = projectData;
-  const summary = matchedSummary;
-  const overview = projectOverview;
   const portProjects = portDetail?.projects || [];
   const hotReleases = portDetail?.hotReleases || [];
+  const isWikiStylePage = viewType === 'project';
+  const sidebarOffsetClass = isWikiStylePage ? 'w-14' : 'w-52';
+  const anchorOffsetClass = isWikiStylePage ? 'left-14' : 'left-52';
 
   // Find port for current project (fallback to currentPort from URL)
   const projectPort = currentPort || null;
-
-  // Parse overview links (backend sends JSON string)
-  const overviewLinks = useMemo(() => parseLinks(overview?.links), [overview?.links]);
 
   return (
     <div className="min-h-screen bg-glow">
@@ -274,13 +394,15 @@ export default function PortsPage() {
 
       <div className="min-h-[calc(100vh-4rem)]">
         {/* Left Sidebar - Fixed */}
-        <div className="fixed left-0 top-16 w-52 h-[calc(100vh-4rem)] z-40 hidden lg:block">
-          <Sidebar />
+        <div
+          className={`fixed left-0 top-16 h-[calc(100vh-4rem)] z-40 hidden lg:block ${sidebarOffsetClass}`}
+        >
+          <Sidebar compact={isWikiStylePage} />
         </div>
 
         {/* ─── PROJECT DETAIL ── */}
         {viewType === 'project' && (
-          <div className="lg:ml-52 min-h-[calc(100vh-4rem)]">
+          <div className={`${isWikiStylePage ? 'lg:ml-14' : 'lg:ml-52'} min-h-[calc(100vh-4rem)]`}>
             {(!project || !projectPort || projectLoading || portLoading) ? (
               <div className="flex items-center justify-center py-24 text-text-muted">Loading project...</div>
             ) : (
@@ -305,31 +427,97 @@ export default function PortsPage() {
 
           {/* TOC Sidebar - Fixed next to global sidebar */}
           {tocSections.length > 0 && (
-            <div className="fixed left-52 top-16 w-44 h-[calc(100vh-4rem)] z-30 hidden xl:block">
-              <div className="h-full px-3 pt-8">
-                <nav className="max-h-[calc(100vh-8rem)] overflow-y-auto space-y-0.5 border-l border-surface-border/80 pl-3">
+            <div
+              className={`fixed ${anchorOffsetClass} top-16 w-56 h-[calc(100vh-4rem)] z-30 hidden xl:block`}
+            >
+              <div className="h-full pl-4 pr-3 pt-8">
+                <nav className="space-y-0.5 border-l border-surface-border/80 pl-3 pr-1 text-left">
                   {tocSections.map((section) => (
-                    <a
-                      key={section.id}
-                      href={`#${section.id}`}
-                      className={`block py-1.5 pr-1 text-[13px] leading-5 transition-colors ${
-                        activeSection === section.id
-                          ? 'font-medium text-text-primary'
-                          : 'text-text-muted hover:text-text-secondary'
-                      }`}
-                    >
-                      <span className={`inline-block truncate ${activeSection === section.id ? 'border-b border-accent/60 pb-0.5' : ''}`}>
-                        {section.label}
-                      </span>
-                    </a>
+                    <div key={section.id}>
+                      {(() => {
+                        const isActiveSection =
+                          activeSection === section.id || (section.children || []).some((child) => child.id === activeSection);
+
+                          return (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                setActiveSection(section.id);
+                                if (section.children?.length) {
+                                  expandTocSection(section.id);
+                                }
+                                scrollToTocAnchor(section.id);
+                              }}
+                              className={`group relative block rounded-sm px-2 py-1.5 transition-colors ${
+                                isActiveSection
+                                  ? 'font-medium text-text-primary bg-surface-elevated/45'
+                                  : 'text-text-muted hover:text-text-secondary hover:bg-surface-elevated/20'
+                              }`}
+                            >
+                            <span
+                              className={`absolute -left-[13px] top-1.5 bottom-1.5 w-[2px] rounded-full transition-colors ${
+                                isActiveSection ? 'bg-accent/80' : 'bg-transparent group-hover:bg-surface-border'
+                              }`}
+                            />
+                            <span className="block w-full text-left break-words text-[13px] leading-5">
+                              {section.label}
+                            </span>
+                          </button>
+                        );
+                      })()}
+
+                      {section.children && section.children.length > 0 && expandedTocSections.has(section.id) && (
+                        <div className="mt-0.5">
+                          {section.children.map((child) => (
+                            <button
+                              key={child.id}
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                setActiveSection(child.id);
+                                expandTocSection(section.id);
+                                scrollToTocAnchor(child.id);
+                              }}
+                              className={`group relative block rounded-sm px-2 py-1 transition-colors ${
+                                activeSection === child.id
+                                  ? 'font-medium text-text-primary bg-surface-elevated/45'
+                                  : 'text-text-muted hover:text-text-secondary hover:bg-surface-elevated/20'
+                              }`}
+                              style={{
+                                paddingLeft:
+                                  child.level === 2
+                                    ? '1.1rem'
+                                    : child.level === 3
+                                      ? '1.5rem'
+                                      : child.level === 4
+                                        ? '1.9rem'
+                                        : child.level >= 5
+                                          ? '2.3rem'
+                                          : '1.1rem',
+                              }}
+                            >
+                              <span
+                                className={`absolute -left-[13px] top-1.5 bottom-1.5 w-[2px] rounded-full transition-colors ${
+                                  activeSection === child.id ? 'bg-accent/80' : 'bg-transparent group-hover:bg-surface-border'
+                                }`}
+                              />
+                              <span className="block w-full text-left break-words text-[12px] leading-5">
+                                {child.label}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   ))}
                 </nav>
               </div>
             </div>
           )}
 
-          {/* Main content — centered between TOC (left-44 = 176px) and right rail */}
-          <div className="xl:ml-44 xl:mr-[320px] 2xl:mr-[520px] px-6 py-8">
+          {/* Main content — centered between TOC and right rail */}
+          <div className="xl:ml-56 xl:mr-[320px] 2xl:mr-[520px] px-6 py-8">
             <div className="max-w-3xl mx-auto">
             {projectLoading ? (
               <div className="text-center py-12 text-text-muted">Loading project...</div>
@@ -399,29 +587,42 @@ export default function PortsPage() {
                   <div className="text-center py-12 text-text-muted">Loading wiki...</div>
                 ) : visibleWikiSections.length > 0 ? (
                   <>
-                    {visibleWikiSections.map(ws => (
+                    {wikiGeneratedLabel && (
+                      <p className="text-2xs text-text-muted">마지막 위키 생성 시각: {wikiGeneratedLabel}</p>
+                    )}
+
+                    {visibleWikiSections.map((ws) => (
                       <section
                         key={ws.sectionId}
                         id={`wiki-${ws.sectionId}`}
-                        className="bg-surface-card rounded-xl border border-surface-border p-6 scroll-mt-24"
+                        className="scroll-mt-24 pb-12 border-b border-surface-border/50 last:border-b-0 last:pb-0"
                       >
-                        <h2 className="text-base font-semibold text-text-primary mb-3">{ws.heading}</h2>
-                        {ws.summary && (
-                          <p className="text-sm text-text-secondary mb-4">{ws.summary}</p>
-                        )}
-                        {ws.deepDiveMarkdown && (
-                          <div className="prose prose-sm prose-invert max-w-none">
-                            <ReactMarkdown>{ws.deepDiveMarkdown}</ReactMarkdown>
-                          </div>
-                        )}
+                        <div className="space-y-6">
+                          {ws.summary && (
+                            <WikiMarkdownRenderer
+                              content={ws.summary}
+                              className="wiki-markdown--summary"
+                              headingIdPrefix={`wiki-${ws.sectionId}-summary-`}
+                            />
+                          )}
+                          {ws.generatedDiagramDsl && (
+                            <MermaidCodeBlock source={ws.generatedDiagramDsl || ''} />
+                          )}
+                          {ws.deepDiveMarkdown && (
+                            <WikiMarkdownRenderer
+                              content={ws.deepDiveMarkdown}
+                              headingIdPrefix={`wiki-${ws.sectionId}-deepdive-`}
+                            />
+                          )}
+                        </div>
                       </section>
                     ))}
-
-                    <div className="text-center py-2">
-                      <span className="text-2xs text-text-muted">AI-generated technical documentation · Verify with official sources</span>
-                    </div>
                   </>
-                ) : null}
+                ) : (
+                  <div className="rounded-xl border border-dashed border-surface-border bg-surface-card/70 p-8 text-center text-sm text-text-muted">
+                    이 프로젝트의 위키 문서는 아직 준비되지 않았습니다.
+                  </div>
+                )}
 
                 {/* Activity Section - GitHub Events */}
                 <section id="activity" className="bg-surface-card rounded-xl border border-surface-border p-5 scroll-mt-24">

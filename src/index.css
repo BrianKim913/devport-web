@@ -111,6 +111,225 @@
   .flow-dot-slow {
     animation-duration: 3.4s;
   }
+
+  .wiki-markdown {
+    @apply text-sm text-text-secondary leading-7;
+    word-break: break-word;
+  }
+
+  .wiki-markdown :where(p, ul, ol, blockquote, pre, table, hr, h1, h2, h3, h4, h5, h6) {
+    @apply my-3;
+  }
+
+  .wiki-markdown p {
+    @apply text-sm leading-7;
+  }
+
+  .wiki-markdown ul,
+  .wiki-markdown ol {
+    @apply pl-6 text-sm leading-7 space-y-1;
+  }
+
+  .wiki-markdown li {
+    @apply text-sm;
+  }
+
+  .wiki-markdown li::marker {
+    color: rgba(148, 163, 184, 0.75);
+  }
+
+  .wiki-markdown ul {
+    @apply list-disc;
+  }
+
+  .wiki-markdown ol {
+    @apply list-decimal;
+  }
+
+  .wiki-markdown h1,
+  .wiki-markdown h2,
+  .wiki-markdown h3 {
+    @apply text-text-primary font-semibold mt-7 mb-3 leading-snug;
+    scroll-margin-top: 88px;
+  }
+
+  .wiki-markdown h4,
+  .wiki-markdown h5,
+  .wiki-markdown h6 {
+    @apply text-text-primary font-medium mt-6 mb-2 leading-snug;
+    scroll-margin-top: 88px;
+  }
+
+  .wiki-markdown h1 {
+    @apply text-xl pb-2 border-b border-surface-border/70;
+  }
+
+  .wiki-markdown h2 {
+    @apply text-lg;
+  }
+
+  .wiki-markdown h3,
+  .wiki-markdown h4 {
+    @apply text-base;
+  }
+
+  .wiki-markdown h5,
+  .wiki-markdown h6 {
+    @apply text-sm;
+  }
+
+  .wiki-markdown blockquote {
+    @apply border-l-2 border-accent/60 pl-4 py-1 italic text-text-muted bg-surface-elevated/20 rounded-r-lg;
+  }
+
+  .wiki-markdown pre {
+    @apply overflow-x-auto rounded-lg border border-surface-border bg-surface-elevated/70 p-3 text-xs text-text-secondary leading-relaxed font-mono break-words;
+  }
+
+  .wiki-markdown code {
+    @apply font-mono;
+  }
+
+  .wiki-markdown hr {
+    @apply border-surface-border/70;
+  }
+
+  .wiki-markdown strong {
+    @apply text-text-primary font-semibold;
+  }
+
+  .wiki-markdown table {
+    @apply w-full text-sm border border-surface-border border-collapse;
+  }
+
+  .wiki-markdown th,
+  .wiki-markdown td {
+    @apply border border-surface-border px-3 py-1.5 text-left;
+  }
+
+  .wiki-markdown th {
+    @apply text-text-primary bg-surface-elevated/60;
+  }
+
+  .wiki-markdown-link {
+    @apply text-accent hover:text-accent-light underline underline-offset-2;
+  }
+
+  section[id] {
+    scroll-margin-top: 88px;
+  }
+
+  .wiki-markdown--summary h1,
+  .wiki-markdown--summary h2,
+  .wiki-markdown--summary h3,
+  .wiki-markdown--summary h4,
+  .wiki-markdown--summary h5,
+  .wiki-markdown--summary h6 {
+    @apply text-sm mt-4 mb-2 border-none pb-0;
+  }
+
+  .wiki-mermaid-diagram {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+
+  .wiki-mermaid-diagram svg {
+    display: block;
+    width: min(100%, 64rem) !important;
+    max-width: none !important;
+    height: auto !important;
+  }
+
+  .wiki-mermaid-diagram .node rect,
+  .wiki-mermaid-diagram .node polygon,
+  .wiki-mermaid-diagram .node path,
+  .wiki-mermaid-diagram .node circle,
+  .wiki-mermaid-diagram .node ellipse,
+  .wiki-mermaid-diagram .node line,
+  .wiki-mermaid-diagram .label-container,
+  .wiki-mermaid-diagram .note,
+  .wiki-mermaid-diagram .classGroup rect,
+  .wiki-mermaid-diagram .cluster rect,
+  .wiki-mermaid-diagram .actor {
+    fill: #101c33 !important;
+    stroke: #5a7298 !important;
+  }
+
+  .wiki-mermaid-diagram .label,
+  .wiki-mermaid-diagram .label text,
+  .wiki-mermaid-diagram text,
+  .wiki-mermaid-diagram .cluster-label text,
+  .wiki-mermaid-diagram .edgeLabel text,
+  .wiki-mermaid-diagram .loopText,
+  .wiki-mermaid-diagram .loopText tspan,
+  .wiki-mermaid-diagram .messageText,
+  .wiki-mermaid-diagram .messageText tspan,
+  .wiki-mermaid-diagram .noteText,
+  .wiki-mermaid-diagram .noteText tspan,
+  .wiki-mermaid-diagram .classText {
+    fill: #ffffff !important;
+    color: #ffffff !important;
+  }
+
+  .wiki-mermaid-diagram .edgePath .path,
+  .wiki-mermaid-diagram .flowchart-link,
+  .wiki-mermaid-diagram path.path,
+  .wiki-mermaid-diagram .messageLine0,
+  .wiki-mermaid-diagram .messageLine1,
+  .wiki-mermaid-diagram .actor-line,
+  .wiki-mermaid-diagram .actor-line0 {
+    stroke: #5c7698 !important;
+  }
+
+  .wiki-mermaid-diagram marker path {
+    fill: #5c7698 !important;
+    stroke: #5c7698 !important;
+  }
+
+  .wiki-mermaid-diagram .actor line,
+  .wiki-mermaid-diagram .actor polyline,
+  .wiki-mermaid-diagram .actor path,
+  .wiki-mermaid-diagram .classGroup {
+    stroke: #5c7698 !important;
+  }
+
+  .wiki-mermaid-diagram svg rect,
+  .wiki-mermaid-diagram svg path,
+  .wiki-mermaid-diagram svg circle,
+  .wiki-mermaid-diagram svg ellipse,
+  .wiki-mermaid-diagram svg polygon,
+  .wiki-mermaid-diagram svg line,
+  .wiki-mermaid-diagram svg polyline,
+  .wiki-mermaid-diagram svg .pieOuter,
+  .wiki-mermaid-diagram svg .slice,
+  .wiki-mermaid-diagram svg .taskText,
+  .wiki-mermaid-diagram svg .section,
+  .wiki-mermaid-diagram svg .section0,
+  .wiki-mermaid-diagram svg .section1,
+  .wiki-mermaid-diagram svg .section2,
+  .wiki-mermaid-diagram svg .section3 {
+    fill: #101c33 !important;
+    stroke: #5c7698 !important;
+  }
+
+  .wiki-mermaid-diagram svg tspan,
+  .wiki-mermaid-diagram svg text,
+  .wiki-mermaid-diagram svg .loopText,
+  .wiki-mermaid-diagram svg .label text,
+  .wiki-mermaid-diagram svg .cluster-label text,
+  .wiki-mermaid-diagram svg .edgeLabel text,
+  .wiki-mermaid-diagram svg .nodeLabel,
+  .wiki-mermaid-diagram svg .messageText {
+    fill: #ffffff !important;
+    color: #ffffff !important;
+  }
+
+  .wiki-mermaid-diagram svg foreignObject div,
+  .wiki-mermaid-diagram svg foreignObject span,
+  .wiki-mermaid-diagram svg foreignObject p {
+    color: #ffffff !important;
+  }
 }
 
 @layer utilities {

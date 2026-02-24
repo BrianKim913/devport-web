@@ -3,8 +3,8 @@
  */
 
 import { useState } from 'react';
-import ReactMarkdown from 'react-markdown';
 import type { WikiSection, WikiSnapshot } from '../../types/wiki';
+import WikiMarkdownRenderer, { MermaidCodeBlock } from './WikiMarkdownRenderer';
 
 interface WikiContentColumnProps {
   snapshot: WikiSnapshot;
@@ -61,18 +61,13 @@ export default function WikiContentColumn({ snapshot, sections }: WikiContentCol
             {/* Section Content */}
             <div className="px-5 py-5 space-y-4">
               {/* Summary */}
-              <p className="text-sm text-text-primary leading-relaxed">{section.summary}</p>
+              <div className="text-sm text-text-primary leading-relaxed">
+                <WikiMarkdownRenderer content={section.summary} />
+              </div>
 
               {/* Architecture Diagram (if present) */}
               {hasDiagram && (
-                <div className="bg-surface-elevated/50 rounded-lg p-4 border border-surface-border">
-                  <pre className="text-xs text-text-muted overflow-x-auto font-mono">
-                    {section.generatedDiagramDsl}
-                  </pre>
-                  <p className="text-2xs text-text-muted mt-2">
-                    Generated architecture diagram (Mermaid DSL)
-                  </p>
-                </div>
+                <MermaidCodeBlock source={section.generatedDiagramDsl || ''} title="Generated architecture diagram (Mermaid)" />
               )}
 
               {/* Deep Dive (expandable) */}
@@ -94,8 +89,8 @@ export default function WikiContentColumn({ snapshot, sections }: WikiContentCol
                   </button>
 
                   {isExpanded && (
-                    <div className="mt-4 prose prose-sm prose-invert max-w-none">
-                      <ReactMarkdown>{section.deepDiveMarkdown}</ReactMarkdown>
+                    <div className="mt-4">
+                      <WikiMarkdownRenderer content={section.deepDiveMarkdown} />
                     </div>
                   )}
                 </div>
